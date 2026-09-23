@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Presensi Guru Digital v1.1.0</title>
+  <title>Presensi Guru Digital v1.2.0</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -41,7 +41,7 @@
           </div>
           <div>
             <h1 id="login-sekolah-nama" class="text-xl font-bold text-slate-900 tracking-tight">Presensi Guru Digital</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Versi 1.1.0 • Aplikasi Absensi Sekolah</p>
+            <p class="text-xs text-slate-500 mt-0.5">Versi 1.2.0 • Aplikasi Absensi Sekolah</p>
           </div>
         </div>
 
@@ -93,6 +93,12 @@
         </div>
 
         <div class="px-5 pt-5 space-y-5">
+          <!-- Status Geofence Info Card -->
+          <div id="geofence-status-card" class="bg-blue-50 border border-blue-200 p-3 rounded-2xl flex items-center space-x-2 text-xs text-blue-800">
+            <i data-lucide="map-pin" class="w-4 h-4 text-blue-600 flex-shrink-0"></i>
+            <span id="geofence-status-text">Mendeteksi lokasi Anda...</span>
+          </div>
+
           <!-- Form Presensi -->
           <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -198,7 +204,7 @@
             <div id="area-laporan" class="border border-slate-200 p-4 rounded-2xl bg-white overflow-x-auto hidden shadow-sm text-xs"></div>
           </div>
 
-          <!-- TAB EDIT ABSENSI GURU (ADMIN) -->
+          <!-- TAB EDIT ABSENSI GURU -->
           <div id="tab-edit-absen" class="hidden space-y-3">
             <h3 class="font-bold text-sm text-slate-800">Koreksi Data Absensi Guru</h3>
             <div id="list-absen-admin" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
@@ -241,8 +247,44 @@
             </div>
           </div>
 
-          <!-- TAB PENGATURAN UMUM -->
+          <!-- TAB PENGATURAN UMUM & ZONA LOKASI -->
           <div id="tab-pengaturan" class="hidden space-y-4">
+            
+            <!-- Pengaturan Zona Lokasi (Geofencing) -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 text-xs">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+                  <i data-lucide="map-pin" class="w-4 h-4 text-blue-600"></i>
+                  <span>Pembatasan Zona Lokasi (GPS)</span>
+                </h3>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="cfg-geofence-active" class="sr-only peer">
+                  <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              
+              <div class="space-y-2.5 pt-1">
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Latitude Sekolah</label>
+                    <input type="text" id="cfg-lat-sekolah" placeholder="-5.147665" class="w-full bg-slate-50 border p-2 rounded-xl">
+                  </div>
+                  <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Longitude Sekolah</label>
+                    <input type="text" id="cfg-lng-sekolah" placeholder="119.432732" class="w-full bg-slate-50 border p-2 rounded-xl">
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Radius Batas Maksimal (Meter)</label>
+                  <input type="number" id="cfg-radius-meter" placeholder="100" class="w-full bg-slate-50 border p-2 rounded-xl">
+                </div>
+                <button onclick="setLokasiSaatIni()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-xl font-semibold text-[11px] flex items-center justify-center space-x-1">
+                  <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+                  <span>Gunakan Koordinat Posisi Saya Saat Ini</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Upload Logo & Kop ke Drive -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 text-xs">
               <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
@@ -270,7 +312,7 @@
                 <div><label class="block font-semibold text-slate-600 mb-1">Kota / Kabupaten</label><input type="text" id="cfg-kota" class="w-full bg-slate-50 border p-2.5 rounded-xl"></div>
                 <div><label class="block font-semibold text-slate-600 mb-1">Nama Kepala Sekolah</label><input type="text" id="cfg-kepsek" class="w-full bg-slate-50 border p-2.5 rounded-xl"></div>
                 <div><label class="block font-semibold text-slate-600 mb-1">NIP Kepala Sekolah</label><input type="text" id="cfg-nip-kepsek" class="w-full bg-slate-50 border p-2.5 rounded-xl"></div>
-                <button onclick="simpanPengaturanUmum()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold mt-2">Simpan Identitas</button>
+                <button onclick="simpanPengaturanUmum()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold mt-2">Simpan Semua Pengaturan</button>
               </div>
             </div>
 
@@ -361,9 +403,12 @@
   </div>
 
   <script>
+    // URL Web App Apps Script Anda
     const GAS_URL = "https://script.google.com/macros/s/AKfycby508SQV8wxmHBOFKaR0NR4sKsHO1E4dg7hwQxdYOn112SD7q7O072IUA2CFG-ERucZ/exec";
+    
     let currentUser = JSON.parse(localStorage.getItem("user")) || null;
     let adminData = null;
+    let globalConfig = null;
     const HARI_LIST = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
@@ -383,7 +428,7 @@
     async function init() {
       lucide.createIcons();
       updateStatus();
-      loadInitialConfig();
+      await loadInitialConfig();
       if (currentUser) {
         if (currentUser.role === "guru") showGuruDashboard();
         else if (currentUser.role === "admin") showAdminDashboard();
@@ -394,6 +439,7 @@
       if (!navigator.onLine) return;
       const res = await fetch(`${GAS_URL}?action=getInitialConfig`).then(r => r.json());
       if (res.success && res.config) {
+        globalConfig = res.config;
         if (res.config.nama_sekolah) document.getElementById("login-sekolah-nama").innerText = res.config.nama_sekolah;
         if (res.config.logo_url) {
           document.getElementById("login-logo-img").src = res.config.logo_url;
@@ -401,6 +447,18 @@
           document.getElementById("login-logo-icon").classList.add("hidden");
         }
       }
+    }
+
+    // Rumus Haversine untuk Hitung Jarak (Meter)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
     }
 
     function toggleManualInput() {
@@ -436,6 +494,13 @@
       document.getElementById("guru-nip").innerText = "NIP: " + (currentUser.guru.nip || '-');
       document.getElementById("guru-jabatan").innerText = currentUser.guru.jabatan || 'Guru';
       document.getElementById("guru-avatar").innerText = currentUser.guru.nama.charAt(0).toUpperCase();
+
+      if (globalConfig && globalConfig.geofence_active) {
+        document.getElementById("geofence-status-text").innerText = `Zona Lokasi Aktif (Radius Batas: ${globalConfig.radius_meter} Meter)`;
+      } else {
+        document.getElementById("geofence-status-text").innerText = `Zona Lokasi Non-Aktif (Absen Bebas)`;
+      }
+
       loadRiwayat();
       lucide.createIcons();
     }
@@ -460,6 +525,14 @@
         renderListAbsenAdmin();
         lucide.createIcons();
       }
+    }
+
+    function setLokasiSaatIni() {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        document.getElementById("cfg-lat-sekolah").value = pos.coords.latitude;
+        document.getElementById("cfg-lng-sekolah").value = pos.coords.longitude;
+        alert("Koordinat lokasi Anda berhasil dipasang!");
+      }, () => alert("Gagal mengambil lokasi. Pastikan GPS aktif."));
     }
 
     function openModalGantiPin() { document.getElementById("modal-ganti-pin").classList.remove("hidden"); }
@@ -617,7 +690,19 @@
       const jamStr = isManual && jamManual ? jamManual : now.toTimeString().split(' ')[0].substring(0, 5);
 
       navigator.geolocation.getCurrentPosition(async (pos) => {
-        const coords = `${pos.coords.latitude},${pos.coords.longitude}`;
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        const coords = `${userLat},${userLng}`;
+
+        // Validasi Zona Lokasi (Geofencing)
+        if (globalConfig && globalConfig.geofence_active && status === "Hadir") {
+          const distance = calculateDistance(userLat, userLng, globalConfig.lat_sekolah, globalConfig.lng_sekolah);
+          if (distance > globalConfig.radius_meter) {
+            alert(`Peringatan: Anda berada ${Math.round(distance)} meter dari lokasi sekolah. Batas maksimal radius adalah ${globalConfig.radius_meter} meter.`);
+            return;
+          }
+        }
+
         const record = {
           id_absen: "ABS-" + Date.now(),
           id_guru: currentUser.guru.id_guru,
@@ -634,7 +719,7 @@
           alert("Tersimpan lokal (Offline).");
         }
         loadRiwayat();
-      }, () => alert("Gagal mendeteksi lokasi GPS. Aktifkan GPS Anda."));
+      }, () => alert("Gagal mendeteksi GPS. Mohon aktifkan GPS perangkat HP Anda."));
     }
 
     async function syncOfflineData() {
@@ -848,6 +933,10 @@
       document.getElementById("cfg-kota").value = cfg.kota || '';
       document.getElementById("cfg-kepsek").value = cfg.nama_kepsek || '';
       document.getElementById("cfg-nip-kepsek").value = cfg.nip_kepsek || '';
+      document.getElementById("cfg-geofence-active").checked = cfg.geofence_active === "true";
+      document.getElementById("cfg-lat-sekolah").value = cfg.lat_sekolah || '';
+      document.getElementById("cfg-lng-sekolah").value = cfg.lng_sekolah || '';
+      document.getElementById("cfg-radius-meter").value = cfg.radius_meter || '100';
     }
 
     async function simpanPengaturanUmum() {
@@ -857,6 +946,10 @@
       config.kota = document.getElementById("cfg-kota").value;
       config.nama_kepsek = document.getElementById("cfg-kepsek").value;
       config.nip_kepsek = document.getElementById("cfg-nip-kepsek").value;
+      config.geofence_active = document.getElementById("cfg-geofence-active").checked ? "true" : "false";
+      config.lat_sekolah = document.getElementById("cfg-lat-sekolah").value;
+      config.lng_sekolah = document.getElementById("cfg-lng-sekolah").value;
+      config.radius_meter = document.getElementById("cfg-radius-meter").value;
 
       const res = await fetch(`${GAS_URL}?action=savePengaturan&data=${encodeURIComponent(JSON.stringify(config))}`).then(r => r.json());
       alert(res.message);
