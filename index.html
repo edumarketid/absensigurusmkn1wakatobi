@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Presensi Guru Digital v1.2.1</title>
+  <title>Presensi Guru Digital v1.3.0 (Offline First)</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -12,44 +12,13 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
     .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
 
-    /* PENGATURAN CETAK FISIK FULL KERTAS (MENGABAIKAN FRAME HP) */
     @media print {
-      body {
-        background: white !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      #app {
-        max-width: 100% !important;
-        width: 100% !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-      }
-      /* Sembunyikan seluruh elemen navigasi, menu, dan tombol */
-      body * {
-        visibility: hidden;
-      }
-      /* Tampilkan hanya area laporan secara utuh dan full width */
-      #area-laporan, #area-laporan * {
-        visibility: visible;
-      }
-      #area-laporan {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        border: none !important;
-        padding: 20px !important;
-        margin: 0 !important;
-        background: white !important;
-        box-shadow: none !important;
-      }
-      .no-print {
-        display: none !important;
-      }
+      body { background: white !important; margin: 0 !important; padding: 0 !important; }
+      #app { max-width: 100% !important; width: 100% !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      body * { visibility: hidden; }
+      #area-laporan, #area-laporan * { visibility: visible; }
+      #area-laporan { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 100% !important; border: none !important; padding: 20px !important; margin: 0 !important; background: white !important; box-shadow: none !important; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -57,10 +26,10 @@
 
   <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative flex flex-col justify-between overflow-hidden">
 
-    <!-- Offline Banner -->
+    <!-- Offline Banner Status -->
     <div id="offline-banner" class="hidden bg-amber-500 text-white text-xs font-medium text-center py-2 px-4 flex items-center justify-center space-x-2 shadow-inner z-50 no-print">
       <i data-lucide="wifi-off" class="w-4 h-4"></i>
-      <span>Mode Offline: Disimpan lokal & sinkron saat online.</span>
+      <span>Mode Offline: Disimpan lokal & otomatis sinkron saat online.</span>
     </div>
 
     <!-- MAIN AREA -->
@@ -75,7 +44,7 @@
           </div>
           <div>
             <h1 id="login-sekolah-nama" class="text-xl font-bold text-slate-900 tracking-tight">Presensi Guru Digital</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Versi 1.2.1 • Aplikasi Absensi Sekolah</p>
+            <p class="text-xs text-slate-500 mt-0.5">Versi 1.3.0 • Mode Offline First Active</p>
           </div>
         </div>
 
@@ -208,7 +177,6 @@
         </div>
 
         <div class="p-5 space-y-5">
-
           <!-- TAB LAPORAN -->
           <div id="tab-laporan" class="space-y-4">
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 no-print">
@@ -283,8 +251,6 @@
 
           <!-- TAB PENGATURAN UMUM & ZONA LOKASI -->
           <div id="tab-pengaturan" class="hidden space-y-4 no-print">
-            
-            <!-- Pengaturan Zona Lokasi (Geofencing) -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 text-xs">
               <div class="flex items-center justify-between">
                 <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
@@ -319,7 +285,7 @@
               </div>
             </div>
 
-            <!-- Upload Logo & Kop ke Drive -->
+            <!-- Upload Logo & Kop -->
             <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 text-xs">
               <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
                 <i data-lucide="upload-cloud" class="w-4 h-4 text-blue-600"></i>
@@ -441,7 +407,7 @@
     
     let currentUser = JSON.parse(localStorage.getItem("user")) || null;
     let adminData = null;
-    let globalConfig = null;
+    let globalConfig = JSON.parse(localStorage.getItem("global_config")) || null;
     const HARI_LIST = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
@@ -454,31 +420,41 @@
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
     function updateStatus() {
-      document.getElementById("offline-banner").classList.toggle("hidden", navigator.onLine);
-      if (navigator.onLine) syncOfflineData();
+      const isOnline = navigator.onLine;
+      document.getElementById("offline-banner").classList.toggle("hidden", isOnline);
+      if (isOnline) syncOfflineData();
     }
 
     async function init() {
       lucide.createIcons();
       updateStatus();
-      await loadInitialConfig();
+      if (globalConfig) renderCachedConfig(globalConfig);
+      if (navigator.onLine) await loadInitialConfig();
       if (currentUser) {
         if (currentUser.role === "guru") showGuruDashboard();
         else if (currentUser.role === "admin") showAdminDashboard();
       }
     }
 
+    function renderCachedConfig(cfg) {
+      if (cfg.nama_sekolah) document.getElementById("login-sekolah-nama").innerText = cfg.nama_sekolah;
+      if (cfg.logo_url) {
+        document.getElementById("login-logo-img").src = cfg.logo_url;
+        document.getElementById("login-logo-img").classList.remove("hidden");
+        document.getElementById("login-logo-icon").classList.add("hidden");
+      }
+    }
+
     async function loadInitialConfig() {
-      if (!navigator.onLine) return;
-      const res = await fetch(`${GAS_URL}?action=getInitialConfig`).then(r => r.json());
-      if (res.success && res.config) {
-        globalConfig = res.config;
-        if (res.config.nama_sekolah) document.getElementById("login-sekolah-nama").innerText = res.config.nama_sekolah;
-        if (res.config.logo_url) {
-          document.getElementById("login-logo-img").src = res.config.logo_url;
-          document.getElementById("login-logo-img").classList.remove("hidden");
-          document.getElementById("login-logo-icon").classList.add("hidden");
+      try {
+        const res = await fetch(`${GAS_URL}?action=getInitialConfig`).then(r => r.json());
+        if (res.success && res.config) {
+          globalConfig = res.config;
+          localStorage.setItem("global_config", JSON.stringify(res.config));
+          renderCachedConfig(res.config);
         }
+      } catch (e) {
+        console.log("Menggunakan konfigurasi ter-cache.");
       }
     }
 
@@ -502,12 +478,30 @@
       const u = document.getElementById("login-user").value;
       const p = document.getElementById("login-pin").value;
       if (!u || !p) { alert("Username & PIN wajib diisi!"); return; }
-      if (!navigator.onLine) { alert("Login awal memerlukan internet."); return; }
+
+      // Offline Authentication Logic
+      if (!navigator.onLine) {
+        const cachedUser = JSON.parse(localStorage.getItem("cached_guru_account"));
+        if (cachedUser && String(cachedUser.guru.hp) === String(u) && String(cachedUser.guru.pin) === String(p)) {
+          currentUser = cachedUser;
+          localStorage.setItem("user", JSON.stringify(currentUser));
+          init();
+          alert("Login Offline Berhasil! Data tersimpan di HP.");
+          return;
+        } else if (u === "admin") {
+          alert("Login Admin membutuhkan koneksi internet.");
+          return;
+        } else {
+          alert("Gagal Login Offline: Akun belum terdaftar di cache lokal HP Anda.");
+          return;
+        }
+      }
 
       const res = await fetch(`${GAS_URL}?action=login&data=${encodeURIComponent(JSON.stringify({username: u, pin: p}))}`).then(r => r.json());
       if (res.success) {
         currentUser = res;
         localStorage.setItem("user", JSON.stringify(res));
+        if (res.role === "guru") localStorage.setItem("cached_guru_account", JSON.stringify(res));
         init();
       } else alert(res.message);
     }
@@ -572,9 +566,18 @@
     async function simpanPinBaru() {
       const pinBaru = document.getElementById("pin-baru").value;
       if (!pinBaru) { alert("Masukkan PIN baru!"); return; }
-      const res = await fetch(`${GAS_URL}?action=changePinGuru&data=${encodeURIComponent(JSON.stringify({id_guru: currentUser.guru.id_guru, pin_baru: pinBaru}))}`).then(r => r.json());
-      alert(res.message);
-      if (res.success) closeModalGantiPin();
+      
+      currentUser.guru.pin = pinBaru;
+      localStorage.setItem("user", JSON.stringify(currentUser));
+      localStorage.setItem("cached_guru_account", JSON.stringify(currentUser));
+
+      if (navigator.onLine) {
+        const res = await fetch(`${GAS_URL}?action=changePinGuru&data=${encodeURIComponent(JSON.stringify({id_guru: currentUser.guru.id_guru, pin_baru: pinBaru}))}`).then(r => r.json());
+        alert(res.message);
+      } else {
+        alert("PIN diperbarui secara lokal. Akan disinkronkan saat online.");
+      }
+      closeModalGantiPin();
     }
 
     function openModalGuru(guru = null) {
@@ -721,7 +724,26 @@
       const tanggalStr = now.toISOString().split('T')[0];
       const jamStr = isManual && jamManual ? jamManual : now.toTimeString().split(' ')[0].substring(0, 5);
 
-      navigator.geolocation.getCurrentPosition(async (pos) => {
+      const processAbsen = (coords) => {
+        const record = {
+          id_absen: "ABS-" + Date.now(),
+          id_guru: currentUser.guru.id_guru,
+          tanggal: tanggalStr, jam: jamStr, jenis_absen: jenis, status: status, keterangan: ket, koordinat: coords, is_manual: isManual
+        };
+
+        let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
+        pending.push(record);
+        localStorage.setItem("pending_absen", JSON.stringify(pending));
+
+        if (navigator.onLine) {
+          syncOfflineData();
+        } else {
+          alert("Presensi Tersimpan dalam Mode Offline HP Anda.");
+        }
+        loadRiwayat();
+      };
+
+      navigator.geolocation.getCurrentPosition((pos) => {
         const userLat = pos.coords.latitude;
         const userLng = pos.coords.longitude;
         const coords = `${userLat},${userLng}`;
@@ -729,48 +751,49 @@
         if (globalConfig && globalConfig.geofence_active && status === "Hadir") {
           const distance = calculateDistance(userLat, userLng, globalConfig.lat_sekolah, globalConfig.lng_sekolah);
           if (distance > globalConfig.radius_meter) {
-            alert(`Peringatan: Anda berada ${Math.round(distance)} meter dari lokasi sekolah. Batas maksimal radius adalah ${globalConfig.radius_meter} meter.`);
+            alert(`Peringatan Geofence: Anda berada ${Math.round(distance)}m dari lokasi sekolah. Batas radius: ${globalConfig.radius_meter}m.`);
             return;
           }
         }
-
-        const record = {
-          id_absen: "ABS-" + Date.now(),
-          id_guru: currentUser.guru.id_guru,
-          tanggal: tanggalStr, jam: jamStr, jenis_absen: jenis, status: status, keterangan: ket, koordinat: coords, is_manual: isManual
-        };
-
-        if (navigator.onLine) {
-          await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`);
-          alert("Presensi berhasil terkirim!");
-        } else {
-          let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
-          pending.push(record);
-          localStorage.setItem("pending_absen", JSON.stringify(pending));
-          alert("Tersimpan lokal (Offline).");
-        }
-        loadRiwayat();
-      }, () => alert("Gagal mendeteksi GPS. Mohon aktifkan GPS perangkat HP Anda."));
+        processAbsen(coords);
+      }, () => {
+        // Fallback jika GPS tidak dapat diakses saat offline
+        processAbsen("GPS Offline");
+      });
     }
 
     async function syncOfflineData() {
       let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
-      if (pending.length > 0) {
-        const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(pending))}`).then(r => r.json());
-        if (res.success) { localStorage.removeItem("pending_absen"); alert("Data offline berhasil disinkronkan!"); }
+      if (pending.length > 0 && navigator.onLine) {
+        try {
+          const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(pending))}`).then(r => r.json());
+          if (res.success) {
+            localStorage.removeItem("pending_absen");
+            alert("Data presensi offline berhasil disinkronkan ke server Google Sheets!");
+            loadRiwayat();
+          }
+        } catch(e) {
+          console.log("Sinkronisasi ditunda, server belum dapat dijangkau.");
+        }
       }
     }
 
     async function loadRiwayat() {
-      if (!navigator.onLine) return;
-      const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: currentUser.guru.id_guru}))}`).then(r => r.json());
-      if (res.success) {
+      let offlineData = JSON.parse(localStorage.getItem("pending_absen") || "[]");
+      
+      const renderRiwayatItems = (listData) => {
         const container = document.getElementById("riwayat-list");
-        if (res.data.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat presensi.</p>`; return; }
+        if (!listData || listData.length === 0) {
+          container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat presensi.</p>`;
+          return;
+        }
 
-        container.innerHTML = res.data.map(r => `
+        container.innerHTML = listData.map(r => `
           <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-1.5 text-xs">
-            <span class="font-bold text-slate-800 border-b pb-1 block">${r.tanggal}</span>
+            <span class="font-bold text-slate-800 border-b pb-1 flex justify-between items-center">
+              <span>${r.tanggal}</span>
+              ${r.hasPending ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Pending Sync</span>' : ''}
+            </span>
             <div class="grid grid-cols-2 gap-2 pt-0.5">
               <div class="bg-slate-50 p-2 rounded-xl">
                 <span class="text-[10px] text-slate-500 font-semibold block">🌅 PAGI</span>
@@ -789,6 +812,42 @@
             </div>
           </div>
         `).join('');
+      };
+
+      if (!navigator.onLine) {
+        // Gabungkan data offline lokal jika sedang tidak bersinyal
+        let mapOffline = {};
+        offlineData.forEach(r => {
+          if (String(r.id_guru) === String(currentUser.guru.id_guru)) {
+            if (!mapOffline[r.tanggal]) mapOffline[r.tanggal] = { tanggal: r.tanggal, pagi: null, siang: null, hasPending: true };
+            mapOffline[r.tanggal][r.jenis_absen.toLowerCase()] = { jam: r.jam, status: r.status, ket: r.keterangan, is_manual: r.is_manual ? 'YA' : 'TIDAK' };
+          }
+        });
+        renderRiwayatItems(Object.values(mapOffline));
+        return;
+      }
+
+      // Ambil data dari server jika online
+      try {
+        const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: currentUser.guru.id_guru}))}`).then(r => r.json());
+        if (res.success) {
+          let serverData = res.data;
+          // Sisipkan item pending offline jika ada
+          offlineData.forEach(off => {
+            if (String(off.id_guru) === String(currentUser.guru.id_guru)) {
+              let exist = serverData.find(s => s.tanggal === off.tanggal);
+              if (!exist) {
+                exist = { tanggal: off.tanggal, pagi: null, siang: null, hasPending: true };
+                serverData.unshift(exist);
+              }
+              exist[off.jenis_absen.toLowerCase()] = { jam: off.jam, status: off.status, ket: off.keterangan, is_manual: off.is_manual ? 'YA' : 'TIDAK' };
+              exist.hasPending = true;
+            }
+          });
+          renderRiwayatItems(serverData);
+        }
+      } catch(e) {
+        console.log("Gagal memuat riwayat online.");
       }
     }
 
