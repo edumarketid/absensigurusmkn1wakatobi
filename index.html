@@ -2,147 +2,318 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Absensi Guru</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Presensi Guru Digital</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  </style>
 </head>
-<body class="bg-gray-100 font-sans">
-  <div id="app" class="max-w-2xl mx-auto min-h-screen bg-white shadow-md p-4">
-    <!-- Indikator Offline -->
-    <div id="offline-banner" class="hidden bg-yellow-500 text-white text-xs text-center py-1 rounded mb-2">
-      Modus Offline: Absensi disimpan lokal & disinkronkan saat online.
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-500 selection:text-white min-h-screen">
+
+  <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative flex flex-col justify-between overflow-hidden">
+
+    <!-- Indikator Offline Banner -->
+    <div id="offline-banner" class="hidden bg-amber-500 text-white text-xs font-medium text-center py-2 px-4 flex items-center justify-center space-x-2 shadow-inner z-50">
+      <i data-lucide="wifi-off" class="w-4 h-4"></i>
+      <span>Mode Offline: Data disimpan lokal & otomatis sinkron saat online.</span>
     </div>
 
-    <!-- Tampilan Login -->
-    <div id="view-login" class="space-y-4 pt-10 max-w-xs mx-auto">
-      <h1 class="text-2xl font-bold text-center text-blue-600">Absensi Guru</h1>
-      <input type="text" id="login-user" placeholder="Nomor HP / Username Admin" class="w-full border p-2 rounded text-sm">
-      <input type="password" id="login-pin" placeholder="PIN" class="w-full border p-2 rounded text-sm">
-      <button onclick="doLogin()" class="w-full bg-blue-600 text-white py-2 rounded font-semibold text-sm">Masuk</button>
-    </div>
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 overflow-y-auto pb-24">
 
-    <!-- Dashboard Guru -->
-    <div id="view-guru" class="hidden space-y-4">
-      <div class="flex justify-between items-center border-b pb-2">
-        <div>
-          <h2 id="guru-nama" class="font-bold"></h2>
-          <p id="guru-nip" class="text-xs text-gray-500"></p>
-        </div>
-        <button onclick="logout()" class="text-xs text-red-500">Keluar</button>
-      </div>
-
-      <!-- Form Absen -->
-      <div class="border p-3 rounded space-y-2 bg-blue-50">
-        <h3 class="font-semibold text-sm">Formulir Absensi</h3>
-        <select id="absen-jenis" class="w-full border p-2 rounded bg-white text-sm">
-          <option value="Pagi">Absen Pagi</option>
-          <option value="Siang">Absen Siang</option>
-        </select>
-        <select id="absen-status" class="w-full border p-2 rounded bg-white text-sm">
-          <option value="Hadir">Hadir</option>
-          <option value="Izin">Izin</option>
-          <option value="Sakit">Sakit</option>
-          <option value="DL">Dinas Luar (DL)</option>
-        </select>
-        <div id="form-manual" class="space-y-2">
-          <label class="inline-flex items-center text-xs">
-            <input type="checkbox" id="absen-is-manual" class="mr-1"> Lupa Absen / Set Manual Jam
-          </label>
-          <input type="time" id="absen-jam-manual" class="w-full border p-2 rounded bg-white text-sm">
-          <textarea id="absen-ket" placeholder="Keterangan (Wajib jika Izin/Sakit/DL/Manual)" class="w-full border p-2 rounded bg-white text-sm"></textarea>
-        </div>
-        <button onclick="kirimAbsen()" class="w-full bg-green-600 text-white py-2 rounded font-semibold text-sm">Kirim Absen</button>
-      </div>
-
-      <!-- Riwayat Pribadi -->
-      <div>
-        <h3 class="font-semibold text-sm mb-2">Riwayat Absensi</h3>
-        <div id="riwayat-list" class="space-y-2 text-xs max-h-60 overflow-y-auto border p-2 rounded"></div>
-      </div>
-    </div>
-
-    <!-- Dashboard Admin -->
-    <div id="view-admin" class="hidden space-y-4">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h2 class="font-bold">Panel Admin</h2>
-        <button onclick="logout()" class="text-xs text-red-500">Keluar</button>
-      </div>
-
-      <!-- Navigasi Tab Admin -->
-      <div class="flex border-b text-xs space-x-2">
-        <button onclick="switchTab('laporan')" id="btn-tab-laporan" class="py-1 px-2 border-b-2 border-blue-600 font-semibold">Laporan</button>
-        <button onclick="switchTab('guru')" id="btn-tab-guru" class="py-1 px-2">Data Guru</button>
-        <button onclick="switchTab('waktu')" id="btn-tab-waktu" class="py-1 px-2">Waktu & Libur</button>
-        <button onclick="switchTab('pengaturan')" id="btn-tab-pengaturan" class="py-1 px-2">Pengaturan Umum</button>
-      </div>
-
-      <!-- Tab Laporan -->
-      <div id="tab-laporan" class="space-y-2 text-xs">
-        <select id="lap-tipe" class="w-full border p-1 rounded">
-          <option value="harian">Harian</option>
-          <option value="mingguan">Mingguan</option>
-          <option value="bulanan">Bulanan</option>
-          <option value="semesteran">Semesteran</option>
-          <option value="tahunan">Tahunan</option>
-        </select>
-        <input type="date" id="lap-tanggal" class="w-full border p-1 rounded">
-        <input type="text" id="lap-periode-teks" placeholder="Teks Periode (mis: Minggu ke 4 September 2026)" class="w-full border p-1 rounded">
-        <button onclick="generateLaporan()" class="w-full bg-blue-600 text-white py-1 rounded">Pratinjau / Cetak Laporan</button>
-        <div id="area-laporan" class="border p-2 mt-2 bg-white overflow-x-auto hidden"></div>
-      </div>
-
-      <!-- Tab Data Guru -->
-      <div id="tab-guru" class="hidden space-y-2 text-xs">
-        <button onclick="tambahGuruModal()" class="bg-green-600 text-white px-2 py-1 rounded mb-2">+ Tambah Guru</button>
-        <div id="list-guru-admin" class="space-y-1"></div>
-      </div>
-
-      <!-- Tab Waktu & Hari Libur -->
-      <div id="tab-waktu" class="hidden space-y-4 text-xs">
-        <!-- Pengaturan Waktu Per Hari -->
-        <div class="border p-3 rounded bg-gray-50 space-y-2">
-          <h3 class="font-bold text-sm text-blue-600">Pengaturan Jam Kerja (Senin–Sabtu)</h3>
-          <p class="text-gray-500 text-xs">* Hari Minggu otomatis diatur sebagai Hari Libur.</p>
-          <div id="container-jadwal-hari" class="space-y-2"></div>
-          <button onclick="simpanJadwalWaktu()" class="w-full bg-blue-600 text-white py-1.5 rounded font-semibold mt-2">Simpan Jam Kerja</button>
-        </div>
-
-        <!-- Kelola Hari Libur -->
-        <div class="border p-3 rounded bg-gray-50 space-y-2">
-          <h3 class="font-bold text-sm text-red-600">Kelola Hari Libur Khusus / Nasional</h3>
-          <div class="flex space-x-2">
-            <input type="date" id="libur-tanggal" class="border p-1 rounded w-1/3">
-            <input type="text" id="libur-ket" placeholder="Keterangan Libur (mis: Hari Raya)" class="border p-1 rounded w-2/3">
-            <button onclick="tambahHariLibur()" class="bg-red-600 text-white px-3 py-1 rounded">Tambah</button>
+      <!-- ================= LOGIN VIEW ================= -->
+      <div id="view-login" class="px-6 pt-12 pb-8 flex flex-col justify-center min-h-[85vh] space-y-8">
+        <div class="text-center space-y-3">
+          <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-blue-200">
+            <i data-lucide="user-check" class="w-8 h-8 text-white"></i>
           </div>
-          <div id="list-hari-libur" class="space-y-1 mt-2"></div>
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Presensi Guru</h1>
+            <p class="text-xs text-slate-500 mt-1">Sistem Absensi Digital Sekolah Modern</p>
+          </div>
+        </div>
+
+        <div class="space-y-4 bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Nomor HP / Username</label>
+            <div class="relative">
+              <i data-lucide="phone" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+              <input type="text" id="login-user" placeholder="Contoh: 08123456789 atau admin" class="w-full bg-white border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">PIN Keamanan</label>
+            <div class="relative">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+              <input type="password" id="login-pin" placeholder="••••••" class="w-full bg-white border border-slate-200 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition">
+            </div>
+          </div>
+
+          <button onclick="doLogin()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white py-3 rounded-xl font-semibold text-sm shadow-md shadow-blue-600/20 transition flex items-center justify-center space-x-2">
+            <span>Masuk ke Akun</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <p class="text-center text-[11px] text-slate-400">© 2026 Presensi Guru Digital. All rights reserved.</p>
+      </div>
+
+      <!-- ================= GURU DASHBOARD ================= -->
+      <div id="view-guru" class="hidden">
+        <!-- Top Profile Bar -->
+        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-6 rounded-b-[2rem] shadow-lg relative">
+          <div class="flex justify-between items-start">
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white font-bold text-lg border border-white/20" id="guru-avatar">
+                G
+              </div>
+              <div>
+                <h2 id="guru-nama" class="font-bold text-base leading-tight">Nama Guru</h2>
+                <p id="guru-nip" class="text-xs text-blue-200 mt-0.5"></p>
+                <span id="guru-jabatan" class="inline-block mt-1 text-[10px] bg-white/20 backdrop-blur-md text-white px-2 py-0.5 rounded-full font-medium">Jabatan</span>
+              </div>
+            </div>
+            <button onclick="logout()" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition text-white/80 hover:text-white" title="Keluar">
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="px-5 pt-6 space-y-6">
+          <!-- Card Form Presensi -->
+          <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="clock" class="w-5 h-5 text-blue-600"></i>
+                <h3 class="font-bold text-sm text-slate-800">Form Presensi</h3>
+              </div>
+              <span id="live-clock" class="text-xs font-mono font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">00:00:00</span>
+            </div>
+
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Sesi Presensi</label>
+                <select id="absen-jenis" class="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                  <option value="Pagi">🌅 Presensi Pagi</option>
+                  <option value="Siang">☀️ Presensi Siang</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kehadiran</label>
+                <select id="absen-status" class="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                  <option value="Hadir">✅ Hadir</option>
+                  <option value="Izin">📄 Izin</option>
+                  <option value="Sakit">🏥 Sakit</option>
+                  <option value="DL">💼 Dinas Luar (DL)</option>
+                </select>
+              </div>
+
+              <!-- Manual Mode Options -->
+              <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
+                <label class="flex items-center space-x-2 text-xs font-medium text-slate-700 cursor-pointer">
+                  <input type="checkbox" id="absen-is-manual" onchange="toggleManualInput()" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                  <span>Lupa Absen / Atur Jam Manual</span>
+                </label>
+
+                <div id="manual-jam-container" class="hidden pt-1">
+                  <label class="block text-[11px] font-semibold text-slate-500 mb-1">Jam Presensi Manual</label>
+                  <input type="time" id="absen-jam-manual" class="w-full bg-white border border-slate-200 p-2 rounded-xl text-xs">
+                </div>
+
+                <textarea id="absen-ket" rows="2" placeholder="Tuliskan keterangan (Wajib untuk Izin, Sakit, DL, atau Manual)..." class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 mt-1"></textarea>
+              </div>
+
+              <button onclick="kirimAbsen()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-blue-600/20 transition flex items-center justify-center space-x-2">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <span>Kirim Data Presensi</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Riwayat Presensi -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+                <i data-lucide="history" class="w-4 h-4 text-blue-600"></i>
+                <span>Riwayat Presensi Pribadi</span>
+              </h3>
+              <button onclick="loadRiwayat()" class="text-xs text-blue-600 font-semibold hover:underline">Refresh</button>
+            </div>
+
+            <div id="riwayat-list" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Tab Pengaturan Umum -->
-      <div id="tab-pengaturan" class="hidden space-y-2 text-xs">
-        <input type="text" id="cfg-sekolah" placeholder="Nama Sekolah" class="w-full border p-1 rounded">
-        <input type="text" id="cfg-ta" placeholder="Tahun Ajaran" class="w-full border p-1 rounded">
-        <input type="text" id="cfg-kota" placeholder="Nama Kota" class="w-full border p-1 rounded">
-        <input type="text" id="cfg-kepsek" placeholder="Nama Kepala Sekolah" class="w-full border p-1 rounded">
-        <input type="text" id="cfg-nip-kepsek" placeholder="NIP Kepala Sekolah" class="w-full border p-1 rounded">
-        <input type="text" id="cfg-kop" placeholder="URL Gambar KOP Sekolah" class="w-full border p-1 rounded">
-        <button onclick="simpanPengaturanUmum()" class="w-full bg-blue-600 text-white py-1.5 rounded font-semibold">Simpan Pengaturan Umum</button>
+      <!-- ================= ADMIN DASHBOARD ================= -->
+      <div id="view-admin" class="hidden">
+        <!-- Top Admin Header -->
+        <div class="bg-slate-900 text-white p-6 rounded-b-[2rem] shadow-lg flex justify-between items-center">
+          <div>
+            <span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">Administrator</span>
+            <h2 class="font-bold text-lg mt-1">Panel Pengelola</h2>
+          </div>
+          <button onclick="logout()" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition text-white/80" title="Keluar">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-5">
+
+          <!-- Tab Laporan -->
+          <div id="tab-laporan" class="space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <h3 class="font-bold text-xs text-slate-700 uppercase tracking-wider">Filter & Cetak Laporan</h3>
+              <div class="space-y-2">
+                <select id="lap-tipe" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs font-medium">
+                  <option value="harian">Laporan Harian</option>
+                  <option value="mingguan">Laporan Mingguan</option>
+                  <option value="bulanan">Laporan Bulanan</option>
+                  <option value="semesteran">Laporan Semesteran</option>
+                  <option value="tahunan">Laporan Tahunan</option>
+                </select>
+                <input type="date" id="lap-tanggal" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                <input type="text" id="lap-periode-teks" placeholder="Periode (mis: Minggu ke-4 September 2026)" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                <button onclick="generateLaporan()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center space-x-2">
+                  <i data-lucide="printer" class="w-4 h-4"></i>
+                  <span>Pratinjau Dokumen Laporan</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="area-laporan" class="border border-slate-200 p-4 rounded-2xl bg-white overflow-x-auto hidden shadow-sm text-xs"></div>
+          </div>
+
+          <!-- Tab Guru -->
+          <div id="tab-guru" class="hidden space-y-3">
+            <div class="flex justify-between items-center">
+              <h3 class="font-bold text-sm text-slate-800">Daftar Guru Terdaftar</h3>
+              <button onclick="tambahGuruModal()" class="bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1 shadow-sm">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Guru Baru</span>
+              </button>
+            </div>
+            <div id="list-guru-admin" class="space-y-2"></div>
+          </div>
+
+          <!-- Tab Waktu & Libur -->
+          <div id="tab-waktu" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+                <i data-lucide="clock" class="w-4 h-4 text-blue-600"></i>
+                <span>Pengaturan Jam Kerja (Senin–Sabtu)</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">* Hari Minggu otomatis diset sebagai Hari Libur.</p>
+              <div id="container-jadwal-hari" class="space-y-2"></div>
+              <button onclick="simpanJadwalWaktu()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-xs shadow-sm">Simpan Aturan Jam Kerja</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+                <i data-lucide="calendar-off" class="w-4 h-4 text-rose-600"></i>
+                <span>Kelola Hari Libur Khusus</span>
+              </h3>
+              <div class="space-y-2">
+                <input type="date" id="libur-tanggal" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                <input type="text" id="libur-ket" placeholder="Keterangan Libur (misal: Hari Raya)" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                <button onclick="tambahHariLibur()" class="w-full bg-rose-600 text-white py-2 rounded-xl font-semibold text-xs shadow-sm">Tambah Hari Libur</button>
+              </div>
+              <div id="list-hari-libur" class="space-y-2 pt-2"></div>
+            </div>
+          </div>
+
+          <!-- Tab Pengaturan Umum -->
+          <div id="tab-pengaturan" class="hidden space-y-3">
+            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-blue-600"></i>
+                <span>Identitas Sekolah & Dokumen</span>
+              </h3>
+              <div class="space-y-2.5 text-xs">
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Nama Sekolah</label>
+                  <input type="text" id="cfg-sekolah" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Tahun Ajaran</label>
+                  <input type="text" id="cfg-ta" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Kota / Kabupaten</label>
+                  <input type="text" id="cfg-kota" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">Nama Kepala Sekolah</label>
+                  <input type="text" id="cfg-kepsek" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">NIP Kepala Sekolah</label>
+                  <input type="text" id="cfg-nip-kepsek" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <div>
+                  <label class="block font-semibold text-slate-600 mb-1">URL Kop Sekolah (Gambar / Logo)</label>
+                  <input type="text" id="cfg-kop" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                </div>
+                <button onclick="simpanPengaturanUmum()" class="w-full bg-blue-600 text-white py-2.5 rounded-xl font-semibold text-xs shadow-sm mt-2">Simpan Identitas Sekolah</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION (Hanya Muncul di Admin Panel) -->
+    <nav id="admin-bottom-nav" class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/80 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex justify-around items-center z-40 pb-safe">
+      <button onclick="switchTab('laporan')" id="btn-nav-laporan" class="flex flex-col items-center space-y-1 text-blue-600 font-semibold">
+        <i data-lucide="file-text" class="w-5 h-5"></i>
+        <span class="text-[10px]">Laporan</span>
+      </button>
+      <button onclick="switchTab('guru')" id="btn-nav-guru" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span class="text-[10px]">Guru</span>
+      </button>
+      <button onclick="switchTab('waktu')" id="btn-nav-waktu" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600">
+        <i data-lucide="clock" class="w-5 h-5"></i>
+        <span class="text-[10px]">Waktu</span>
+      </button>
+      <button onclick="switchTab('pengaturan')" id="btn-nav-pengaturan" class="flex flex-col items-center space-y-1 text-slate-400 hover:text-slate-600">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+        <span class="text-[10px]">Pengaturan</span>
+      </button>
+    </nav>
+
   </div>
 
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycby508SQV8wxmHBOFKaR0NR4sKsHO1E4dg7hwQxdYOn112SD7q7O072IUA2CFG-ERucZ/exec";
     let currentUser = JSON.parse(localStorage.getItem("user")) || null;
     let adminData = null;
-
     const HARI_LIST = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
+
+    // Jam Realtime
+    setInterval(() => {
+      const clockEl = document.getElementById("live-clock");
+      if (clockEl) {
+        clockEl.innerText = new Date().toLocaleTimeString('id-ID');
+      }
+    }, 1000);
 
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
@@ -152,6 +323,7 @@
     }
 
     function init() {
+      lucide.createIcons();
       updateStatus();
       if (currentUser) {
         if (currentUser.role === "guru") showGuruDashboard();
@@ -159,9 +331,15 @@
       }
     }
 
+    function toggleManualInput() {
+      const isManual = document.getElementById("absen-is-manual").checked;
+      document.getElementById("manual-jam-container").classList.toggle("hidden", !isManual);
+    }
+
     async function doLogin() {
       const u = document.getElementById("login-user").value;
       const p = document.getElementById("login-pin").value;
+      if (!u || !p) { alert("Nomor HP / Username dan PIN wajib diisi!"); return; }
       if (!navigator.onLine) { alert("Login awal memerlukan koneksi internet."); return; }
 
       const res = await fetch(`${GAS_URL}?action=login&data=${encodeURIComponent(JSON.stringify({username: u, pin: p}))}`).then(r => r.json());
@@ -181,15 +359,23 @@
     function showGuruDashboard() {
       document.getElementById("view-login").classList.add("hidden");
       document.getElementById("view-guru").classList.remove("hidden");
+      document.getElementById("admin-bottom-nav").classList.add("hidden");
+      
       document.getElementById("guru-nama").innerText = currentUser.guru.nama;
-      document.getElementById("guru-nip").innerText = "NIP: " + currentUser.guru.nip;
+      document.getElementById("guru-nip").innerText = "NIP: " + (currentUser.guru.nip || '-');
+      document.getElementById("guru-jabatan").innerText = currentUser.guru.jabatan || 'Guru';
+      document.getElementById("guru-avatar").innerText = currentUser.guru.nama.charAt(0).toUpperCase();
+      
       loadRiwayat();
+      lucide.createIcons();
     }
 
-    async function showAdminDashboard() {
+    function showAdminDashboard() {
       document.getElementById("view-login").classList.add("hidden");
       document.getElementById("view-admin").classList.remove("hidden");
+      document.getElementById("admin-bottom-nav").classList.remove("hidden");
       loadAdminData();
+      lucide.createIcons();
     }
 
     async function loadAdminData() {
@@ -201,6 +387,7 @@
         renderHariLibur();
         renderPengaturanUmum();
         renderListGuru();
+        lucide.createIcons();
       }
     }
 
@@ -208,15 +395,15 @@
       const container = document.getElementById("container-jadwal-hari");
       const cfg = adminData.config || {};
       container.innerHTML = HARI_LIST.map(h => {
-        const keyPrefix = h.toLowerCase();
+        const k = h.toLowerCase();
         return `
-          <div class="p-2 border rounded bg-white">
-            <span class="font-bold text-gray-700 mb-1 block">${h}</span>
-            <div class="grid grid-cols-2 gap-1">
-              <div><label class="text-[10px] text-gray-500">Mulai Pagi</label><input type="time" id="${keyPrefix}_mulai_pagi" value="${cfg[keyPrefix + '_mulai_pagi'] || '06:30'}" class="w-full border p-1 rounded"></div>
-              <div><label class="text-[10px] text-gray-500">Toleransi Pagi</label><input type="time" id="${keyPrefix}_tol_pagi" value="${cfg[keyPrefix + '_tol_pagi'] || '07:15'}" class="w-full border p-1 rounded"></div>
-              <div><label class="text-[10px] text-gray-500">Mulai Siang</label><input type="time" id="${keyPrefix}_mulai_siang" value="${cfg[keyPrefix + '_mulai_siang'] || '12:00'}" class="w-full border p-1 rounded"></div>
-              <div><label class="text-[10px] text-gray-500">Batas Siang</label><input type="time" id="${keyPrefix}_batas_siang" value="${cfg[keyPrefix + '_batas_siang'] || '14:00'}" class="w-full border p-1 rounded"></div>
+          <div class="p-3 border border-slate-200 rounded-xl bg-slate-50/50 space-y-2">
+            <span class="font-bold text-xs text-slate-700 block">${h}</span>
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div><label class="text-slate-500">Mulai Pagi</label><input type="time" id="${k}_mulai_pagi" value="${cfg[k + '_mulai_pagi'] || '06:30'}" class="w-full bg-white border p-1.5 rounded-lg"></div>
+              <div><label class="text-slate-500">Toleransi Pagi</label><input type="time" id="${k}_tol_pagi" value="${cfg[k + '_tol_pagi'] || '07:15'}" class="w-full bg-white border p-1.5 rounded-lg"></div>
+              <div><label class="text-slate-500">Mulai Siang</label><input type="time" id="${k}_mulai_siang" value="${cfg[k + '_mulai_siang'] || '12:00'}" class="w-full bg-white border p-1.5 rounded-lg"></div>
+              <div><label class="text-slate-500">Batas Siang</label><input type="time" id="${k}_batas_siang" value="${cfg[k + '_batas_siang'] || '14:00'}" class="w-full bg-white border p-1.5 rounded-lg"></div>
             </div>
           </div>
         `;
@@ -240,10 +427,19 @@
     function renderHariLibur() {
       const container = document.getElementById("list-hari-libur");
       const list = adminData.hariLibur || [];
+      if(list.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada hari libur khusus.</p>`;
+        return;
+      }
       container.innerHTML = list.map(l => `
-        <div class="flex justify-between items-center border-b pb-1">
-          <span><b>${l.tanggal}</b>: ${l.keterangan}</span>
-          <button onclick="hapusHariLibur('${l.id_libur}')" class="text-red-500 text-xs">Hapus</button>
+        <div class="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+          <div>
+            <span class="font-bold text-slate-800">${l.tanggal}</span>
+            <p class="text-slate-500 text-[11px]">${l.keterangan}</p>
+          </div>
+          <button onclick="hapusHariLibur('${l.id_libur}')" class="text-rose-600 p-1 hover:bg-rose-50 rounded-lg">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
         </div>
       `).join('');
     }
@@ -290,13 +486,21 @@
 
     function renderListGuru() {
       const container = document.getElementById("list-guru-admin");
-      container.innerHTML = (adminData.guru || []).map(g => `
-        <div class="flex justify-between items-center border p-2 rounded">
+      const list = adminData.guru || [];
+      if(list.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada data guru.</p>`;
+        return;
+      }
+      container.innerHTML = list.map(g => `
+        <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm flex justify-between items-center text-xs">
           <div>
-            <b>${g.nama}</b> (${g.nip})<br>
-            <span class="text-gray-500">HP: ${g.hp} | Jabatan: ${g.jabatan}</span>
+            <h4 class="font-bold text-slate-800">${g.nama}</h4>
+            <p class="text-slate-500 text-[11px]">NIP: ${g.nip || '-'} | HP: ${g.hp}</p>
+            <span class="inline-block mt-1 bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[10px] font-medium">${g.jabatan || 'Guru'}</span>
           </div>
-          <button onclick="hapusGuru('${g.id_guru}')" class="text-red-500">Hapus</button>
+          <button onclick="hapusGuru('${g.id_guru}')" class="text-rose-600 p-2 hover:bg-rose-50 rounded-xl">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
         </div>
       `).join('');
     }
@@ -311,10 +515,19 @@
     function switchTab(tab) {
       ["laporan", "guru", "waktu", "pengaturan"].forEach(t => {
         document.getElementById(`tab-${t}`).classList.add("hidden");
-        document.getElementById(`btn-tab-${t}`).classList.remove("border-b-2", "border-blue-600", "font-semibold");
+        const btn = document.getElementById(`btn-nav-${t}`);
+        if (btn) {
+          btn.classList.remove("text-blue-600", "font-semibold");
+          btn.classList.add("text-slate-400");
+        }
       });
       document.getElementById(`tab-${tab}`).classList.remove("hidden");
-      document.getElementById(`btn-tab-${tab}`).classList.add("border-b-2", "border-blue-600", "font-semibold");
+      const activeBtn = document.getElementById(`btn-nav-${tab}`);
+      if (activeBtn) {
+        activeBtn.classList.add("text-blue-600", "font-semibold");
+        activeBtn.classList.remove("text-slate-400");
+      }
+      lucide.createIcons();
     }
 
     async function kirimAbsen() {
@@ -349,16 +562,16 @@
 
         if (navigator.onLine) {
           await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`);
-          alert("Absensi berhasil terkirim!");
+          alert("Presensi berhasil terkirim!");
         } else {
           let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
           pending.push(record);
           localStorage.setItem("pending_absen", JSON.stringify(pending));
-          alert("Tersimpan lokal (Offline). Akan otomatis disinkronkan saat online.");
+          alert("Tersimpan lokal (Offline). Akan disinkronkan saat terhubung kembali.");
         }
         loadRiwayat();
       }, () => {
-        alert("Gagal mendapatkan lokasi. Pastikan GPS aktif.");
+        alert("Gagal mendeteksi lokasi. Pastikan izin GPS aktif pada browser Anda.");
       });
     }
 
@@ -368,7 +581,7 @@
         const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(pending))}`).then(r => r.json());
         if (res.success) {
           localStorage.removeItem("pending_absen");
-          alert("Data absensi offline berhasil disinkronkan!");
+          alert("Data presensi offline berhasil disinkronkan ke peladen!");
         }
       }
     }
@@ -378,13 +591,20 @@
       const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: currentUser.guru.id_guru}))}`).then(r => r.json());
       if (res.success) {
         const container = document.getElementById("riwayat-list");
+        if (res.data.length === 0) {
+          container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat presensi.</p>`;
+          return;
+        }
         container.innerHTML = res.data.map(r => `
-          <div class="border-b pb-1">
-            <div class="flex justify-between font-bold">
-              <span>${r.tanggal} (${r.jam})</span>
-              <span class="text-blue-600">${r.status}</span>
+          <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-1">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-bold text-slate-800">${r.tanggal} (${r.jam})</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                r.status === 'Hadir' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'
+              }">${r.status}</span>
             </div>
-            <div class="text-gray-500">${r.jenis} ${r.is_manual === 'YA' ? '[Manual]' : ''} - ${r.keterangan || '-'}</div>
+            <p class="text-[11px] text-slate-500">Sesi: ${r.jenis} ${r.is_manual === 'YA' ? '<span class="text-rose-500 font-semibold">(Manual)</span>' : ''}</p>
+            ${r.keterangan ? `<p class="text-[11px] text-slate-600 italic bg-slate-50 p-1.5 rounded-lg border border-slate-100 mt-1">"${r.keterangan}"</p>` : ''}
           </div>
         `).join('');
       }
@@ -404,30 +624,30 @@
         let tableHtml = "";
         if (res.tipe === "harian") {
           tableHtml = `
-            <div class="text-center mb-4">
-              ${cfg.kop_url ? `<img src="${cfg.kop_url}" class="h-16 mx-auto mb-2">` : ''}
-              <h2 class="font-bold text-sm">Daftar Hadir Guru ${cfg.nama_sekolah || ''}</h2>
-              <p class="text-xs">Periode: ${tanggal}</p>
-              <p class="text-xs">Tahun Ajaran ${cfg.tahun_ajaran || ''}</p>
+            <div class="text-center mb-4 space-y-1">
+              ${cfg.kop_url ? `<img src="${cfg.kop_url}" class="h-16 mx-auto mb-2 object-contain">` : ''}
+              <h2 class="font-bold text-sm text-slate-900 uppercase">Daftar Hadir Guru ${cfg.nama_sekolah || ''}</h2>
+              <p class="text-xs text-slate-600">Periode: ${tanggal}</p>
+              <p class="text-xs text-slate-500">Tahun Ajaran ${cfg.tahun_ajaran || ''}</p>
             </div>
-            <table class="w-full border-collapse border border-gray-300 text-[10px]">
+            <table class="w-full border-collapse border border-slate-300 text-[10px]">
               <thead>
-                <tr class="bg-gray-100">
-                  <th class="border p-1">No.</th>
-                  <th class="border p-1">Nama Lengkap</th>
-                  <th class="border p-1">NIP</th>
-                  <th class="border p-1">Jabatan</th>
-                  <th class="border p-1">Keterangan</th>
+                <tr class="bg-slate-100 text-slate-700">
+                  <th class="border border-slate-300 p-1.5">No.</th>
+                  <th class="border border-slate-300 p-1.5 text-left">Nama Lengkap</th>
+                  <th class="border border-slate-300 p-1.5 text-left">NIP</th>
+                  <th class="border border-slate-300 p-1.5 text-left">Jabatan</th>
+                  <th class="border border-slate-300 p-1.5 text-left">Keterangan</th>
                 </tr>
               </thead>
               <tbody>
                 ${res.data.map((d, i) => `
                   <tr>
-                    <td class="border p-1 text-center">${i + 1}</td>
-                    <td class="border p-1">${d.nama}</td>
-                    <td class="border p-1">${d.nip}</td>
-                    <td class="border p-1">${d.jabatan}</td>
-                    <td class="border p-1">${d.keterangan}</td>
+                    <td class="border border-slate-300 p-1.5 text-center">${i + 1}</td>
+                    <td class="border border-slate-300 p-1.5 font-semibold">${d.nama}</td>
+                    <td class="border border-slate-300 p-1.5">${d.nip || '-'}</td>
+                    <td class="border border-slate-300 p-1.5">${d.jabatan || 'Guru'}</td>
+                    <td class="border border-slate-300 p-1.5">${d.keterangan}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -435,42 +655,42 @@
           `;
         } else {
           tableHtml = `
-            <div class="text-center mb-4">
-              ${cfg.kop_url ? `<img src="${cfg.kop_url}" class="h-16 mx-auto mb-2">` : ''}
-              <h2 class="font-bold text-sm">Daftar Hadir Guru ${cfg.nama_sekolah || ''}</h2>
-              <p class="text-xs">Periode: ${periodeTeks || 'Ganjil/Genap'}</p>
-              <p class="text-xs">Tahun Ajaran ${cfg.tahun_ajaran || ''}</p>
+            <div class="text-center mb-4 space-y-1">
+              ${cfg.kop_url ? `<img src="${cfg.kop_url}" class="h-16 mx-auto mb-2 object-contain">` : ''}
+              <h2 class="font-bold text-sm text-slate-900 uppercase">Daftar Hadir Guru ${cfg.nama_sekolah || ''}</h2>
+              <p class="text-xs text-slate-600">Periode: ${periodeTeks || 'Ganjil/Genap'}</p>
+              <p class="text-xs text-slate-500">Tahun Ajaran ${cfg.tahun_ajaran || ''}</p>
             </div>
-            <table class="w-full border-collapse border border-gray-300 text-[10px]">
+            <table class="w-full border-collapse border border-slate-300 text-[10px]">
               <thead>
-                <tr class="bg-gray-100">
-                  <th class="border p-1">No.</th>
-                  <th class="border p-1">Nama Lengkap</th>
-                  <th class="border p-1">NIP</th>
-                  <th class="border p-1">Jabatan</th>
-                  <th class="border p-1">Hadir</th>
-                  <th class="border p-1">Alpa</th>
-                  <th class="border p-1">Izin</th>
-                  <th class="border p-1">Sakit</th>
-                  <th class="border p-1">DL</th>
-                  <th class="border p-1">Terlambat</th>
-                  <th class="border p-1">Persentase (%)</th>
+                <tr class="bg-slate-100 text-slate-700">
+                  <th class="border border-slate-300 p-1">No.</th>
+                  <th class="border border-slate-300 p-1 text-left">Nama Lengkap</th>
+                  <th class="border border-slate-300 p-1 text-left">NIP</th>
+                  <th class="border border-slate-300 p-1 text-left">Jabatan</th>
+                  <th class="border border-slate-300 p-1">Hadir</th>
+                  <th class="border border-slate-300 p-1">Alpa</th>
+                  <th class="border border-slate-300 p-1">Izin</th>
+                  <th class="border border-slate-300 p-1">Sakit</th>
+                  <th class="border border-slate-300 p-1">DL</th>
+                  <th class="border border-slate-300 p-1">Terlambat</th>
+                  <th class="border border-slate-300 p-1">%</th>
                 </tr>
               </thead>
               <tbody>
                 ${res.data.map((d, i) => `
                   <tr>
-                    <td class="border p-1 text-center">${i + 1}</td>
-                    <td class="border p-1">${d.nama}</td>
-                    <td class="border p-1">${d.nip}</td>
-                    <td class="border p-1">${d.jabatan}</td>
-                    <td class="border p-1 text-center">${d.rekap.hadir}</td>
-                    <td class="border p-1 text-center">${d.rekap.alpa}</td>
-                    <td class="border p-1 text-center">${d.rekap.izin}</td>
-                    <td class="border p-1 text-center">${d.rekap.sakit}</td>
-                    <td class="border p-1 text-center">${d.rekap.dl}</td>
-                    <td class="border p-1 text-center">${d.rekap.terlambat}</td>
-                    <td class="border p-1 text-center">${d.persentase}</td>
+                    <td class="border border-slate-300 p-1 text-center">${i + 1}</td>
+                    <td class="border border-slate-300 p-1 font-semibold">${d.nama}</td>
+                    <td class="border border-slate-300 p-1">${d.nip || '-'}</td>
+                    <td class="border border-slate-300 p-1">${d.jabatan || 'Guru'}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.hadir}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.alpa}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.izin}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.sakit}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.dl}</td>
+                    <td class="border border-slate-300 p-1 text-center">${d.rekap.terlambat}</td>
+                    <td class="border border-slate-300 p-1 text-center font-bold text-blue-600">${d.persentase}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -479,13 +699,13 @@
         }
 
         tableHtml += `
-          <div class="mt-6 flex justify-end text-xs">
-            <div class="text-center">
+          <div class="mt-8 flex justify-end text-xs">
+            <div class="text-center space-y-1">
               <p>${cfg.kota || 'Kota'}, ${new Date().toLocaleDateString('id-ID')}</p>
-              <p>Kepala Sekolah</p>
-              <br><br><br>
+              <p class="font-medium">Kepala Sekolah</p>
+              <div class="h-16"></div>
               <p class="font-bold underline">${cfg.nama_kepsek || '...................'}</p>
-              <p>NIP. ${cfg.nip_kepsek || '...................'}</p>
+              <p class="text-slate-500">NIP. ${cfg.nip_kepsek || '...................'}</p>
             </div>
           </div>
         `;
