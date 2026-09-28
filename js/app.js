@@ -47,10 +47,14 @@ export async function initApp() {
   if (state.globalConfig) renderCachedConfig(state.globalConfig);
   if (navigator.onLine) loadInitialConfig();
 
-  // Cek Tombol Login Sidik Jari
-  if (isBiometricSupported() && localStorage.getItem("biometric_credential")) {
-    const btnFinger = document.getElementById("btn-login-fingerprint");
-    if (btnFinger) btnFinger.classList.remove("hidden");
+  // Cek Tampilan Tombol Login Sidik Jari
+  const btnFinger = document.getElementById("btn-login-fingerprint");
+  if (btnFinger) {
+    if (localStorage.getItem("biometric_credential")) {
+      btnFinger.classList.remove("hidden");
+    } else {
+      btnFinger.classList.add("hidden");
+    }
   }
 
   if (state.currentUser) {
@@ -81,10 +85,14 @@ function showGuruDashboard() {
   document.getElementById("guru-jabatan").innerText = state.currentUser.guru.jabatan || 'Guru';
   document.getElementById("guru-avatar").innerText = state.currentUser.guru.nama.charAt(0).toUpperCase();
 
-  // Tampilkan Tombol Aktifkan Biometrik di Dashboard
-  if (isBiometricSupported() && !localStorage.getItem("biometric_credential")) {
-    const cardBio = document.getElementById("card-register-fingerprint");
-    if (cardBio) cardBio.classList.remove("hidden");
+  // Tampilkan Card Aktifkan Biometrik di Dashboard jika Belum Terdaftar
+  const cardBio = document.getElementById("card-register-fingerprint");
+  if (cardBio) {
+    if (!localStorage.getItem("biometric_credential")) {
+      cardBio.classList.remove("hidden");
+    } else {
+      cardBio.classList.add("hidden");
+    }
   }
 
   if (state.globalConfig && state.globalConfig.geofence_active) {
@@ -126,23 +134,31 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Login Sidik Jari Click
-  document.getElementById("btn-login-fingerprint").onclick = async () => {
-    const guruData = await loginWithBiometric();
-    if (guruData) {
-      const userSession = { success: true, role: "guru", guru: guruData };
-      setCurrentUser(userSession);
-      localStorage.setItem("user", JSON.stringify(userSession));
-      initApp();
-    }
-  };
+  const btnFinger = document.getElementById("btn-login-fingerprint");
+  if (btnFinger) {
+    btnFinger.onclick = async () => {
+      const guruData = await loginWithBiometric();
+      if (guruData) {
+        const userSession = { success: true, role: "guru", guru: guruData };
+        setCurrentUser(userSession);
+        localStorage.setItem("user", JSON.stringify(userSession));
+        initApp();
+      }
+    };
+  }
 
   // Enable Biometric Click
-  document.getElementById("btn-enable-biometric").onclick = async () => {
-    if (state.currentUser && state.currentUser.guru) {
-      const ok = await registerBiometric(state.currentUser.guru);
-      if (ok) document.getElementById("card-register-fingerprint").classList.add("hidden");
-    }
-  };
+  const btnEnableBio = document.getElementById("btn-enable-biometric");
+  if (btnEnableBio) {
+    btnEnableBio.onclick = async () => {
+      if (state.currentUser && state.currentUser.guru) {
+        const ok = await registerBiometric(state.currentUser.guru);
+        if (ok) {
+          document.getElementById("card-register-fingerprint").classList.add("hidden");
+        }
+      }
+    };
+  }
 
   document.getElementById("btn-open-pin").onclick = openModalGantiPin;
   document.getElementById("btn-close-pin").onclick = closeModalGantiPin;
