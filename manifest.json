@@ -3,14 +3,16 @@
   "name": "Presensi Guru Digital",
   "icons": [
     {
-      "src": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmHkzAdv0a5u1JAQY7PyNuhVVi2a7glu-72Am0vXullA&s",
+      "src": "https://drive.google.com/file/d/1eEebhZpFXLtxhEqdE-vi5W-6hRZG01sb/view?usp=sharing",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmHkzAdv0a5u1JAQY7PyNuhVVi2a7glu-72Am0vXullA&s",
+      "src": "https://drive.google.com/file/d/1eEebhZpFXLtxhEqdE-vi5W-6hRZG01sb/view?usp=sharing",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "./index.html",
