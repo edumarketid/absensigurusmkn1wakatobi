@@ -9,15 +9,39 @@ export function renderCachedConfig(cfg) {
   }
 }
 
+// NAVIGASI BOTTOM TAB GURU
+export function switchGuruTab(tab) {
+  ["beranda", "presensi", "jadwal", "riwayat"].forEach(t => {
+    document.getElementById(`tab-guru-${t}`).classList.add("hidden");
+    const btn = document.getElementById(`btn-guru-nav-${t}`);
+    if (btn) btn.classList.remove("text-blue-600", "font-semibold");
+    if (btn) btn.classList.add("text-slate-400");
+  });
+  
+  document.getElementById(`tab-guru-${tab}`).classList.remove("hidden");
+  const activeBtn = document.getElementById(`btn-guru-nav-${tab}`);
+  if (activeBtn) {
+    activeBtn.classList.remove("text-slate-400");
+    activeBtn.classList.add("text-blue-600", "font-semibold");
+  }
+  lucide.createIcons();
+}
+
+// NAVIGASI BOTTOM TAB ADMIN
 export function switchTab(tab) {
-  ["laporan", "edit-absen", "guru", "waktu", "pengaturan"].forEach(t => {
+  ["laporan", "edit-absen", "guru", "jadwal-admin", "waktu", "pengaturan"].forEach(t => {
     document.getElementById(`tab-${t}`).classList.add("hidden");
     const btn = document.getElementById(`btn-nav-${t}`);
     if (btn) btn.classList.remove("text-blue-600", "font-semibold");
+    if (btn) btn.classList.add("text-slate-400");
   });
+  
   document.getElementById(`tab-${tab}`).classList.remove("hidden");
   const activeBtn = document.getElementById(`btn-nav-${tab}`);
-  if (activeBtn) activeBtn.classList.add("text-blue-600", "font-semibold");
+  if (activeBtn) {
+    activeBtn.classList.remove("text-slate-400");
+    activeBtn.classList.add("text-blue-600", "font-semibold");
+  }
   lucide.createIcons();
 }
 
@@ -49,9 +73,12 @@ export function closeModalGantiPin() { document.getElementById("modal-ganti-pin"
 export function openModalEditAbsen(absen) {
   document.getElementById("modal-edit-absen").classList.remove("hidden");
   document.getElementById("edit-absen-id").value = absen.id_absen;
-  document.getElementById("edit-absen-jam").value = absen.jam;
-  document.getElementById("edit-absen-jenis").value = absen.jenis;
-  document.getElementById("edit-absen-status").value = absen.status;
-  document.getElementById("edit-absen-ket").value = absen.keterangan || "";
+  document.getElementById("edit-pagi-jam").value = absen.jam_pagi !== "-" ? absen.jam_pagi : "";
+  document.getElementById("edit-pagi-status").value = absen.status_pagi || "-";
+  document.getElementById("edit-pagi-ket").value = absen.ket_pagi !== "-" ? absen.ket_pagi : "";
+  
+  document.getElementById("edit-siang-jam").value = absen.jam_siang !== "-" ? absen.jam_siang : "";
+  document.getElementById("edit-siang-status").value = absen.status_siang || "-";
+  document.getElementById("edit-siang-ket").value = absen.ket_siang !== "-" ? absen.ket_siang : "";
 }
 export function closeModalEditAbsen() { document.getElementById("modal-edit-absen").classList.add("hidden"); }
