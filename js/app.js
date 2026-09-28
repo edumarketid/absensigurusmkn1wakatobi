@@ -144,3 +144,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initApp();
 });
+let deferredPrompt = null;
+
+// Tangkap Event PWA Install Prompt dari Browser
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Cegah dialog prompt bawaan browser
+  e.preventDefault();
+  // Simpan event agar bisa dipanggil saat tombol diklik
+  deferredPrompt = e;
+  
+  // Tampilkan banner/tombol instalasi di UI
+  const installBanner = document.getElementById("pwa-install-banner");
+  if (installBanner) {
+    installBanner.classList.remove("hidden");
+  }
+});
+
+// Logika Klik Tombol Instal
+document.addEventListener("DOMContentLoaded", () => {
+  const btnInstall = document.getElementById("btn-install-pwa");
+  if (btnInstall) {
+    btnInstall.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      
+      // Tampilkan dialog instalasi PWA native
+      deferredPrompt.prompt();
+      
+      // Tunggu respon pilihan dari pengguna
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('Pengguna menyetujui instalasi PWA');
+      }
+      
+      // Sembunyikan banner setelah direspons
+      deferredPrompt = null;
+      document.getElementById("pwa-install-banner").classList.add("hidden");
+    });
+  }
+});
+
+// Sembunyikan tombol jika aplikasi sudah berhasil diinstal
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const installBanner = document.getElementById("pwa-install-banner");
+  if (installBanner) {
+    installBanner.classList.add("hidden");
+  }
+  alert("Aplikasi Presensi Guru berhasil terinstal di layar utama HP Anda!");
+});
