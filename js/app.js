@@ -1,9 +1,12 @@
-import { GAS_URL, state, setGlobalConfig } from './config.js';
+import { GAS_URL, state, setCurrentUser, setGlobalConfig } from './config.js';
 import { doLogin, logout } from './auth.js';
 import { renderCachedConfig, switchTab, openModalGuru, closeModalGuru, openModalGantiPin, closeModalGantiPin, closeModalEditAbsen } from './ui.js';
 import { kirimAbsen, loadRiwayat, syncOfflineData } from './absen.js';
 import { setLokasiSaatIni } from './geofence.js';
 import { loadAdminData, simpanDataGuru, simpanKoreksiAbsen, uploadFileDrive, simpanJadwalWaktu, tambahHariLibur, simpanPengaturanUmum, generateLaporan } from './admin.js';
+import { isBiometricSupported, registerBiometric, loginWithBiometric } from './biometric.js';
+
+let deferredPrompt = null;
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
@@ -23,12 +26,33 @@ function updateStatus() {
   if (isOnline) syncOfflineData();
 }
 
+// Tangkap PWA Install Prompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBanner = document.getElementById("pwa-install-banner");
+  if (installBanner) installBanner.classList.remove("hidden");
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const installBanner = document.getElementById("pwa-install-banner");
+  if (installBanner) installBanner.classList.add("hidden");
+  alert("Aplikasi Presensi Guru berhasil terinstal di layar utama HP Anda!");
+});
+
 export async function initApp() {
   lucide.createIcons();
   updateStatus();
   if (state.globalConfig) renderCachedConfig(state.globalConfig);
   if (navigator.onLine) loadInitialConfig();
-  
+
+  // Cek Tombol Login Sidik Jari
+  if (isBiometricSupported() && localStorage.getItem("biometric_credential")) {
+    const btnFinger = document.getElementById("btn-login-fingerprint");
+    if (btnFinger) btnFinger.classList.remove("hidden");
+  }
+
   if (state.currentUser) {
     if (state.currentUser.role === "guru") showGuruDashboard();
     else if (state.currentUser.role === "admin") showAdminDashboard();
@@ -57,6 +81,12 @@ function showGuruDashboard() {
   document.getElementById("guru-jabatan").innerText = state.currentUser.guru.jabatan || 'Guru';
   document.getElementById("guru-avatar").innerText = state.currentUser.guru.nama.charAt(0).toUpperCase();
 
+  // Tampilkan Tombol Aktifkan Biometrik di Dashboard
+  if (isBiometricSupported() && !localStorage.getItem("biometric_credential")) {
+    const cardBio = document.getElementById("card-register-fingerprint");
+    if (cardBio) cardBio.classList.remove("hidden");
+  }
+
   if (state.globalConfig && state.globalConfig.geofence_active) {
     document.getElementById("geofence-status-text").innerText = `Zona Lokasi Aktif (Radius Batas: ${state.globalConfig.radius_meter} Meter)`;
   } else {
@@ -75,12 +105,45 @@ function showAdminDashboard() {
   lucide.createIcons();
 }
 
-// BIND ALL EVENT LISTENERS
+// Event Bindings
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-login").onclick = doLogin;
   document.getElementById("btn-logout-guru").onclick = logout;
   document.getElementById("btn-logout-admin").onclick = logout;
-  
+
+  // Install PWA Button Click
+  const btnInstall = document.getElementById("btn-install-pwa");
+  if (btnInstall) {
+    btnInstall.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById("pwa-install-banner").classList.add("hidden");
+      }
+      deferredPrompt = null;
+    };
+  }
+
+  // Login Sidik Jari Click
+  document.getElementById("btn-login-fingerprint").onclick = async () => {
+    const guruData = await loginWithBiometric();
+    if (guruData) {
+      const userSession = { success: true, role: "guru", guru: guruData };
+      setCurrentUser(userSession);
+      localStorage.setItem("user", JSON.stringify(userSession));
+      initApp();
+    }
+  };
+
+  // Enable Biometric Click
+  document.getElementById("btn-enable-biometric").onclick = async () => {
+    if (state.currentUser && state.currentUser.guru) {
+      const ok = await registerBiometric(state.currentUser.guru);
+      if (ok) document.getElementById("card-register-fingerprint").classList.add("hidden");
+    }
+  };
+
   document.getElementById("btn-open-pin").onclick = openModalGantiPin;
   document.getElementById("btn-close-pin").onclick = closeModalGantiPin;
   document.getElementById("btn-save-pin").onclick = async () => {
@@ -143,52 +206,4 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   initApp();
-});
-let deferredPrompt = null;
-
-// Tangkap Event PWA Install Prompt dari Browser
-window.addEventListener('beforeinstallprompt', (e) => {
-  // Cegah dialog prompt bawaan browser
-  e.preventDefault();
-  // Simpan event agar bisa dipanggil saat tombol diklik
-  deferredPrompt = e;
-  
-  // Tampilkan banner/tombol instalasi di UI
-  const installBanner = document.getElementById("pwa-install-banner");
-  if (installBanner) {
-    installBanner.classList.remove("hidden");
-  }
-});
-
-// Logika Klik Tombol Instal
-document.addEventListener("DOMContentLoaded", () => {
-  const btnInstall = document.getElementById("btn-install-pwa");
-  if (btnInstall) {
-    btnInstall.addEventListener("click", async () => {
-      if (!deferredPrompt) return;
-      
-      // Tampilkan dialog instalasi PWA native
-      deferredPrompt.prompt();
-      
-      // Tunggu respon pilihan dari pengguna
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        console.log('Pengguna menyetujui instalasi PWA');
-      }
-      
-      // Sembunyikan banner setelah direspons
-      deferredPrompt = null;
-      document.getElementById("pwa-install-banner").classList.add("hidden");
-    });
-  }
-});
-
-// Sembunyikan tombol jika aplikasi sudah berhasil diinstal
-window.addEventListener('appinstalled', () => {
-  deferredPrompt = null;
-  const installBanner = document.getElementById("pwa-install-banner");
-  if (installBanner) {
-    installBanner.classList.add("hidden");
-  }
-  alert("Aplikasi Presensi Guru berhasil terinstal di layar utama HP Anda!");
 });
