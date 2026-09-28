@@ -1,10 +1,8 @@
-// Check apakah perangkat HP mendukung sensor Biometrik/WebAuthn
 export function isBiometricSupported() {
-  return window.PublicKeyCredential && 
-         typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
+  return !!(window.PublicKeyCredential && 
+            typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function');
 }
 
-// Registrasi Sidik Jari Baru (Saat Guru Sudah Login)
 export async function registerBiometric(guru) {
   if (!isBiometricSupported()) {
     alert("Perangkat HP Anda tidak mendukung fitur Biometrik/Sidik Jari.");
@@ -34,7 +32,6 @@ export async function registerBiometric(guru) {
     });
 
     if (credential) {
-      // Simpan kredensial biometrik lokal di HP
       const bioData = {
         credId: credential.id,
         guru: guru
@@ -45,16 +42,15 @@ export async function registerBiometric(guru) {
     }
   } catch (err) {
     console.error(err);
-    alert("Batal / Gagal mendaftarkan sidik jari: " + err.message);
+    alert("Batal / Gagal mendaftarkan sidik jari.");
     return false;
   }
 }
 
-// Verifikasi Login Menggunakan Sidik Jari
 export async function loginWithBiometric() {
   const bioData = JSON.parse(localStorage.getItem("biometric_credential"));
   if (!bioData) {
-    alert("Sidik jari belum terdaftar di HP ini. Silakan login manual dengan PIN terlebih dahulu lalu aktifkan fitur biometrik.");
+    alert("Sidik jari belum terdaftar di HP ini. Silakan login manual dengan PIN terlebih dahulu.");
     return null;
   }
 
@@ -71,7 +67,6 @@ export async function loginWithBiometric() {
     });
 
     if (assertion) {
-      // Return data guru yang tersimpan di kredensial aman
       return bioData.guru;
     }
   } catch (err) {
