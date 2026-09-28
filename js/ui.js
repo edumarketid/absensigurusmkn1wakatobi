@@ -1,5 +1,4 @@
 import { state } from './config.js';
-import { loadAdminData } from './admin.js';
 
 export function renderCachedConfig(cfg) {
   if (cfg.nama_sekolah) document.getElementById("login-sekolah-nama").innerText = cfg.nama_sekolah;
