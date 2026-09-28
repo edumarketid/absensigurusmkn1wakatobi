@@ -1,14 +1,22 @@
-const CACHE_NAME = 'absen-guru-v1.3.0';
+const CACHE_NAME = 'absen-guru-v1.4.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './css/styles.css',
+  './js/app.js',
+  './js/config.js',
+  './js/auth.js',
+  './js/geofence.js',
+  './js/ui.js',
+  './js/absen.js',
+  './js/admin.js',
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/lucide@latest',
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'
 ];
 
-// Tahap Install: Cache semua asset frontend utama
+// Tahap Install: Simpan seluruh asset modular ke Cache Storage
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +25,7 @@ self.addEventListener('install', (e) => {
   );
 });
 
-// Tahap Activate: Hapus cache versi lama
+// Tahap Activate: Bersihkan cache versi lama
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
@@ -32,7 +40,7 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Strategi Fetch: Network First dengan Fallback ke Cache
+// Strategi Network First dengan Fallback ke Cache
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
