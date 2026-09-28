@@ -1,9 +1,9 @@
 import { GAS_URL, state, setCurrentUser, setGlobalConfig } from './config.js';
 import { doLogin, logout } from './auth.js';
-import { renderCachedConfig, switchTab, openModalGuru, closeModalGuru, openModalGantiPin, closeModalGantiPin, closeModalEditAbsen } from './ui.js';
+import { renderCachedConfig, switchGuruTab, switchTab, openModalGuru, closeModalGuru, openModalGantiPin, closeModalGantiPin, closeModalEditAbsen } from './ui.js';
 import { kirimAbsen, loadRiwayat, syncOfflineData } from './absen.js';
 import { setLokasiSaatIni } from './geofence.js';
-import { loadAdminData, simpanDataGuru, simpanKoreksiAbsen, uploadFileDrive, simpanJadwalWaktu, tambahHariLibur, simpanPengaturanUmum, generateLaporan } from './admin.js';
+import { loadAdminData, simpanDataGuru, simpanKoreksiAbsen, uploadFileDrive, simpanJadwalWaktu, tambahHariLibur, simpanPengaturanUmum, generateLaporan, openModalJadwal, simpanJadwal, simpanPintasanLink } from './admin.js';
 import { isBiometricSupported, registerBiometric, loginWithBiometric } from './biometric.js';
 
 let deferredPrompt = null;
@@ -47,7 +47,7 @@ export async function initApp() {
   if (state.globalConfig) renderCachedConfig(state.globalConfig);
   if (navigator.onLine) loadInitialConfig();
 
-  // Cek Tampilan Tombol Login Sidik Jari
+  // Cek Tombol Login Sidik Jari
   const btnFinger = document.getElementById("btn-login-fingerprint");
   if (btnFinger) {
     if (localStorage.getItem("biometric_credential")) {
@@ -79,13 +79,14 @@ async function loadInitialConfig() {
 function showGuruDashboard() {
   document.getElementById("view-login").classList.add("hidden");
   document.getElementById("view-guru").classList.remove("hidden");
+  document.getElementById("guru-bottom-nav").classList.remove("hidden");
   document.getElementById("admin-bottom-nav").classList.add("hidden");
+
   document.getElementById("guru-nama").innerText = state.currentUser.guru.nama;
   document.getElementById("guru-nip").innerText = "NIP: " + (state.currentUser.guru.nip || '-');
   document.getElementById("guru-jabatan").innerText = state.currentUser.guru.jabatan || 'Guru';
   document.getElementById("guru-avatar").innerText = state.currentUser.guru.nama.charAt(0).toUpperCase();
 
-  // Tampilkan Card Aktifkan Biometrik di Dashboard jika Belum Terdaftar
   const cardBio = document.getElementById("card-register-fingerprint");
   if (cardBio) {
     if (!localStorage.getItem("biometric_credential")) {
@@ -101,6 +102,9 @@ function showGuruDashboard() {
     document.getElementById("geofence-status-text").innerText = `Zona Lokasi Non-Aktif (Absen Bebas)`;
   }
 
+  // Render Data Beranda & Jadwal Guru
+  loadPintasanGuru();
+  loadJadwalGuru();
   loadRiwayat();
   lucide.createIcons();
 }
@@ -109,8 +113,85 @@ function showAdminDashboard() {
   document.getElementById("view-login").classList.add("hidden");
   document.getElementById("view-admin").classList.remove("hidden");
   document.getElementById("admin-bottom-nav").classList.remove("hidden");
+  document.getElementById("guru-bottom-nav").classList.add("hidden");
   loadAdminData();
   lucide.createIcons();
+}
+
+// RENDER PINTASAN DOKUMEN & LINK (GURU)
+function loadPintasanGuru() {
+  const container = document.getElementById("container-pintasan-guru");
+  fetch(`${GAS_URL}?action=getPintasanLink`).then(r => r.json()).then(res => {
+    if (res.success && res.data) {
+      container.innerHTML = res.data.map(l => `
+        <a href="${l.url}" target="_blank" rel="noopener noreferrer" class="bg-white border border-slate-100 p-3 rounded-2xl shadow-sm flex items-center space-x-2.5 hover:bg-slate-50 transition-all active:scale-95">
+          <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="${l.icon || 'external-link'}" class="w-4 h-4"></i>
+          </div>
+          <span class="font-bold text-xs text-slate-800 truncate">${l.judul}</span>
+        </a>
+      `).join('');
+      lucide.createIcons();
+    }
+  });
+}
+
+// RENDER JADWAL GURU (BERANDA & TAB JADWAL)
+function loadJadwalGuru() {
+  const hariArr = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const hariIni = hariArr[new Date().getDay()];
+  const labelHari = document.getElementById("label-hari-ini");
+  if (labelHari) labelHari.innerText = hariIni;
+
+  fetch(`${GAS_URL}?action=getJadwalGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json()).then(res => {
+    if (res.success && res.data) {
+      const listJadwal = res.data;
+      
+      // 1. Ringkasan Hari Ini di Beranda
+      const ringkasan = document.getElementById("ringkasan-jadwal-hari-ini");
+      const jadwalToday = listJadwal.filter(j => j.hari === hariIni);
+      if (jadwalToday.length === 0) {
+        ringkasan.innerHTML = `<p class="text-slate-400 italic text-[11px]">Tidak ada jadwal mengajar hari ini.</p>`;
+      } else {
+        ringkasan.innerHTML = jadwalToday.map(j => `
+          <div class="p-2.5 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center">
+            <div>
+              <span class="font-bold text-indigo-600 text-[11px]">Jam ke ${j.jam_ke}</span>
+              <h5 class="font-bold text-slate-800">${j.mapel}</h5>
+            </div>
+            <span class="bg-white px-2.5 py-1 rounded-xl text-[11px] font-bold text-slate-700 shadow-sm border border-slate-100">${j.kelas}</span>
+          </div>
+        `).join('');
+      }
+
+      // 2. Jadwal Lengkap Mingguan di Tab Jadwal
+      const containerLengkap = document.getElementById("container-jadwal-lengkap-guru");
+      const hariKerja = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      
+      containerLengkap.innerHTML = hariKerja.map(h => {
+        const itemHari = listJadwal.filter(j => j.hari === h);
+        return `
+          <div class="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm space-y-2">
+            <span class="font-bold text-xs text-slate-800 border-b border-slate-100 pb-1 block flex justify-between items-center">
+              <span>${h}</span>
+              ${h === hariIni ? '<span class="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">Hari Ini</span>' : ''}
+            </span>
+            ${itemHari.length === 0 ? '<p class="text-[11px] text-slate-400 italic">Tidak ada jam mengajar</p>' : itemHari.map(j => `
+              <div class="p-2 bg-slate-50 rounded-xl flex justify-between items-center text-xs">
+                <div>
+                  <span class="font-semibold text-blue-600 text-[10px]">Jam ke ${j.jam_ke}</span>
+                  <p class="font-bold text-slate-800">${j.mapel}</p>
+                </div>
+                <span class="font-bold text-slate-700 bg-white px-2 py-0.5 rounded-lg border">${j.kelas}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+  });
 }
 
 // Event Bindings
@@ -118,6 +199,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-login").onclick = doLogin;
   document.getElementById("btn-logout-guru").onclick = logout;
   document.getElementById("btn-logout-admin").onclick = logout;
+
+  // Navigasi Bottom Guru
+  document.getElementById("btn-guru-nav-beranda").onclick = () => switchGuruTab('beranda');
+  document.getElementById("btn-guru-nav-presensi").onclick = () => switchGuruTab('presensi');
+  document.getElementById("btn-guru-nav-jadwal").onclick = () => switchGuruTab('jadwal');
+  document.getElementById("btn-guru-nav-riwayat").onclick = () => switchGuruTab('riwayat');
 
   // Install PWA Button Click
   const btnInstall = document.getElementById("btn-install-pwa");
@@ -188,6 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-nav-laporan").onclick = () => switchTab('laporan');
   document.getElementById("btn-nav-edit-absen").onclick = () => switchTab('edit-absen');
   document.getElementById("btn-nav-guru").onclick = () => switchTab('guru');
+  document.getElementById("btn-nav-jadwal-admin").onclick = () => switchTab('jadwal-admin');
   document.getElementById("btn-nav-waktu").onclick = () => switchTab('waktu');
   document.getElementById("btn-nav-pengaturan").onclick = () => switchTab('pengaturan');
 
@@ -195,6 +283,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-add-guru").onclick = () => openModalGuru();
   document.getElementById("btn-close-guru").onclick = closeModalGuru;
   document.getElementById("btn-save-guru").onclick = simpanDataGuru;
+
+  document.getElementById("btn-add-jadwal").onclick = openModalJadwal;
+  document.getElementById("btn-close-jadwal").onclick = () => document.getElementById("modal-jadwal").classList.add("hidden");
+  document.getElementById("btn-save-jadwal").onclick = simpanJadwal;
+
+  document.getElementById("btn-add-pintasan-link").onclick = () => {
+    document.getElementById("modal-pintasan-link").classList.remove("hidden");
+    document.getElementById("link-edit-id").value = "";
+    document.getElementById("link-edit-judul").value = "";
+    document.getElementById("link-edit-url").value = "";
+  };
+  document.getElementById("btn-close-link").onclick = () => document.getElementById("modal-pintasan-link").classList.add("hidden");
+  document.getElementById("btn-save-link").onclick = simpanPintasanLink;
 
   document.getElementById("btn-close-edit-absen").onclick = closeModalEditAbsen;
   document.getElementById("btn-save-edit-absen").onclick = simpanKoreksiAbsen;
