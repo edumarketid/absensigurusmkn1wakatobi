@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Presensi Guru Digital v1.4.0 (Modular)</title>
+  <title>Presensi Guru Digital v1.5.0</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -23,7 +23,24 @@
     <main class="flex-1 overflow-y-auto pb-24">
 
       <!-- ================= LOGIN VIEW ================= -->
-      <div id="view-login" class="px-6 pt-10 pb-8 flex flex-col justify-center min-h-[85vh] space-y-6">
+      <div id="view-login" class="px-6 pt-8 pb-8 flex flex-col justify-center min-h-[85vh] space-y-5">
+        
+        <!-- BANNER TOMBOL INSTALL PWA -->
+        <div id="pwa-install-banner" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between space-x-3 mb-2">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i data-lucide="download" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-xs">Instal Aplikasi Presensi</h4>
+              <p class="text-[10px] text-blue-100">Pasang di HP agar cepat & offline-friendly</p>
+            </div>
+          </div>
+          <button id="btn-install-pwa" class="bg-white text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs shadow hover:bg-blue-50 active:scale-95 transition-all flex-shrink-0">
+            Instal
+          </button>
+        </div>
+
         <div class="text-center space-y-3">
           <div id="login-logo-container" class="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto shadow-md overflow-hidden bg-blue-600">
             <i data-lucide="school" class="w-10 h-10 text-white" id="login-logo-icon"></i>
@@ -31,7 +48,7 @@
           </div>
           <div>
             <h1 id="login-sekolah-nama" class="text-xl font-bold text-slate-900 tracking-tight">Presensi Guru Digital</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Versi 1.4.0 • Modular Architecture</p>
+            <p class="text-xs text-slate-500 mt-0.5">Versi 1.5.0 • Biometric & Fast Login</p>
           </div>
         </div>
 
@@ -56,6 +73,12 @@
             <span id="btn-login-text">Masuk ke Akun</span>
             <i data-lucide="arrow-right" class="w-4 h-4" id="btn-login-icon"></i>
           </button>
+
+          <!-- TOMBOL LOGIN SIDIK JARI -->
+          <button id="btn-login-fingerprint" class="hidden w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl font-semibold text-sm shadow-md flex items-center justify-center space-x-2 transition-all">
+            <i data-lucide="fingerprint" class="w-5 h-5 text-emerald-400"></i>
+            <span>Login dengan Sidik Jari</span>
+          </button>
         </div>
       </div>
 
@@ -78,12 +101,26 @@
           </div>
         </div>
 
-        <div class="px-5 pt-5 space-y-5">
+        <div class="px-5 pt-5 space-y-4">
+          
+          <!-- CARD AKTIVASI SIDIK JARI -->
+          <div id="card-register-fingerprint" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between text-xs text-emerald-800">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="fingerprint" class="w-5 h-5 text-emerald-600 flex-shrink-0"></i>
+              <span class="font-medium">Aktifkan Login Sidik Jari</span>
+            </div>
+            <button id="btn-enable-biometric" class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] hover:bg-emerald-700">
+              Aktifkan
+            </button>
+          </div>
+
+          <!-- Status Geofence Info Card -->
           <div id="geofence-status-card" class="bg-blue-50 border border-blue-200 p-3 rounded-2xl flex items-center space-x-2 text-xs text-blue-800">
             <i data-lucide="map-pin" class="w-4 h-4 text-blue-600 flex-shrink-0"></i>
             <span id="geofence-status-text">Mendeteksi lokasi Anda...</span>
           </div>
 
+          <!-- Form Presensi -->
           <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-4">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div class="flex items-center space-x-2">
@@ -377,22 +414,8 @@
       </div>
     </div>
   </div>
-<!-- BANNER / TOMBOL INSTALL PWA (Otomatis Muncul Jika Browser Mendukung) -->
-<div id="pwa-install-banner" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between space-x-3 mb-4">
-  <div class="flex items-center space-x-3">
-    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-      <i data-lucide="download shadow-sm" class="w-5 h-5 text-white"></i>
-    </div>
-    <div>
-      <h4 class="font-bold text-xs">Instal Aplikasi Presensi</h4>
-      <p class="text-[10px] text-blue-100">Pasang di HP agar cepat & offline-friendly</p>
-    </div>
-  </div>
-  <button id="btn-install-pwa" class="bg-white text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs shadow hover:bg-blue-50 active:scale-95 transition-all flex-shrink-0">
-    Instal
-  </button>
-</div>
-  <!-- LOAD MODULAR ES MODULES -->
+
+  <!-- LOAD MAIN APP -->
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
