@@ -1,8 +1,10 @@
+// Check apakah perangkat HP mendukung sensor Biometrik/WebAuthn
 export function isBiometricSupported() {
   return !!(window.PublicKeyCredential && 
             typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function');
 }
 
+// Registrasi Sidik Jari Baru (Saat Guru Sudah Login Manual)
 export async function registerBiometric(guru) {
   if (!isBiometricSupported()) {
     alert("Perangkat HP Anda tidak mendukung fitur Biometrik/Sidik Jari.");
@@ -22,7 +24,10 @@ export async function registerBiometric(guru) {
           name: guru.hp,
           displayName: guru.nama
         },
-        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+        pubKeyCredParams: [
+          { alg: -7, type: "public-key" },  // ES256
+          { alg: -257, type: "public-key" } // RS256
+        ],
         authenticatorSelection: {
           authenticatorAttachment: "platform",
           userVerification: "required"
@@ -37,20 +42,26 @@ export async function registerBiometric(guru) {
         guru: guru
       };
       localStorage.setItem("biometric_credential", JSON.stringify(bioData));
-      alert("Aktivasi Sidik Jari / Biometrik Berhasil! Anda dapat login menggunakan sidik jari selanjutnya.");
+      alert("Aktivasi Sidik Jari Berhasil!\n\nSelanjutnya Anda bisa login langsung menggunakan sensor sidik jari HP.");
       return true;
     }
   } catch (err) {
     console.error(err);
-    alert("Batal / Gagal mendaftarkan sidik jari.");
+    if (err.name === 'NotAllowedError') {
+      alert("Proses pendaftaran sidik jari dibatalkan oleh pengguna.");
+    } else {
+      alert("Gagal mendaftarkan sidik jari. Pastikan HP Anda memiliki sistem keamanan layar (PIN/Fingerprint) yang aktif.");
+    }
     return false;
   }
 }
 
+// Verifikasi Login Menggunakan Sidik Jari
 export async function loginWithBiometric() {
   const bioData = JSON.parse(localStorage.getItem("biometric_credential"));
+  
   if (!bioData) {
-    alert("Sidik jari belum terdaftar di HP ini. Silakan login manual dengan PIN terlebih dahulu.");
+    alert("Kunci sidik jari belum dibuat di HP ini.\n\nSilakan login menggunakan Nomor HP & PIN terlebih dahulu, lalu tekan tombol 'Aktifkan' di halaman Dashboard.");
     return null;
   }
 
@@ -71,7 +82,11 @@ export async function loginWithBiometric() {
     }
   } catch (err) {
     console.error(err);
-    alert("Verifikasi sidik jari dibatalkan atau gagal.");
+    if (err.name === 'NotAllowedError' || err.name === 'InvalidStateError') {
+      alert("Kunci sidik jari tidak ditemukan atau verifikasi dibatalkan.\n\nSilakan login dengan PIN terlebih dahulu untuk mengaktifkan ulang sidik jari Anda.");
+    } else {
+      alert("Gagal verifikasi sidik jari: " + err.message);
+    }
     return null;
   }
 }
