@@ -8,7 +8,24 @@ export async function kirimAbsen() {
   const jamManual = document.getElementById("absen-jam-manual").value;
   const ket = document.getElementById("absen-ket").value;
 
-  if ((status !== "Hadir" || isManual) && !ket) { alert("Keterangan wajib diisi!"); return; }
+  // Validasi input awal jika keterangan belum diisi
+  if ((status !== "Hadir" || isManual) && !ket) { 
+    alert("Keterangan wajib diisi!"); 
+    return; 
+  }
+
+  const btnKirim = document.getElementById("btn-kirim-absen");
+  
+  // Ubah tampilan tombol secara instan ke indikator "Terkirim" (Hijau)
+  if (btnKirim) {
+    btnKirim.disabled = true;
+    btnKirim.className = "w-full bg-emerald-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all duration-300";
+    btnKirim.innerHTML = `
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i>
+      <span>Terkirim</span>
+    `;
+    lucide.createIcons();
+  }
 
   const now = new Date();
   const tanggalStr = now.toISOString().split('T')[0];
@@ -18,19 +35,39 @@ export async function kirimAbsen() {
     const record = {
       id_absen: "ABS-" + Date.now(),
       id_guru: state.currentUser.guru.id_guru,
-      tanggal: tanggalStr, jam: jamStr, jenis_absen: jenis, status: status, keterangan: ket, koordinat: coords, is_manual: isManual
+      tanggal: tanggalStr, 
+      jam: jamStr, 
+      jenis_absen: jenis, 
+      status: status, 
+      keterangan: ket, 
+      koordinat: coords, 
+      is_manual: isManual
     };
 
     let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
     pending.push(record);
     localStorage.setItem("pending_absen", JSON.stringify(pending));
 
+    // Sinkronisasi senyap di latar belakang
     if (navigator.onLine) {
       syncOfflineData();
-    } else {
-      alert("Presensi Tersimpan dalam Mode Offline HP Anda.");
     }
+    
+    // Perbarui riwayat presensi lokal
     loadRiwayat();
+
+    // Reset tombol kembali ke warna biru dalam 3 detik
+    setTimeout(() => {
+      if (btnKirim) {
+        btnKirim.disabled = false;
+        btnKirim.className = "w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center space-x-2 transition-all duration-300";
+        btnKirim.innerHTML = `
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>Kirim Presensi</span>
+        `;
+        lucide.createIcons();
+      }
+    }, 3000);
   };
 
   navigator.geolocation.getCurrentPosition((pos) => {
@@ -42,6 +79,14 @@ export async function kirimAbsen() {
       const distance = calculateDistance(userLat, userLng, state.globalConfig.lat_sekolah, state.globalConfig.lng_sekolah);
       if (distance > state.globalConfig.radius_meter) {
         alert(`Peringatan Geofence: Anda berada ${Math.round(distance)}m dari lokasi sekolah. Batas radius: ${state.globalConfig.radius_meter}m.`);
+        
+        // Kembalikan tombol ke kondisi semula jika terhalang Geofence
+        if (btnKirim) {
+          btnKirim.disabled = false;
+          btnKirim.className = "w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center space-x-2";
+          btnKirim.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Presensi</span>`;
+          lucide.createIcons();
+        }
         return;
       }
     }
@@ -55,10 +100,10 @@ export async function syncOfflineData() {
   let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
   if (pending.length > 0 && navigator.onLine) {
     try {
+      // Mengirimkan data tanpa memunculkan alert/notifikasi apa pun ke user
       const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(pending))}`).then(r => r.json());
       if (res.success) {
         localStorage.removeItem("pending_absen");
-        alert("Data presensi offline berhasil disinkronkan ke server Google Sheets!");
         loadRiwayat();
       }
     } catch(e) {
