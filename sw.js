@@ -1,4 +1,4 @@
-const CACHE_NAME = 'absen-guru-v1.4.0';
+const CACHE_NAME = 'absen-guru-v1.5.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   './js/app.js',
   './js/config.js',
   './js/auth.js',
+  './js/biometric.js',
   './js/geofence.js',
   './js/ui.js',
   './js/absen.js',
@@ -16,7 +17,6 @@ const ASSETS_TO_CACHE = [
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'
 ];
 
-// Tahap Install: Simpan seluruh asset modular ke Cache Storage
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -25,7 +25,6 @@ self.addEventListener('install', (e) => {
   );
 });
 
-// Tahap Activate: Bersihkan cache versi lama
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
@@ -40,7 +39,6 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Strategi Network First dengan Fallback ke Cache
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
