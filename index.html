@@ -377,7 +377,21 @@
       </div>
     </div>
   </div>
-
+<!-- BANNER / TOMBOL INSTALL PWA (Otomatis Muncul Jika Browser Mendukung) -->
+<div id="pwa-install-banner" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-between space-x-3 mb-4">
+  <div class="flex items-center space-x-3">
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+      <i data-lucide="download shadow-sm" class="w-5 h-5 text-white"></i>
+    </div>
+    <div>
+      <h4 class="font-bold text-xs">Instal Aplikasi Presensi</h4>
+      <p class="text-[10px] text-blue-100">Pasang di HP agar cepat & offline-friendly</p>
+    </div>
+  </div>
+  <button id="btn-install-pwa" class="bg-white text-blue-700 px-3 py-1.5 rounded-xl font-bold text-xs shadow hover:bg-blue-50 active:scale-95 transition-all flex-shrink-0">
+    Instal
+  </button>
+</div>
   <!-- LOAD MODULAR ES MODULES -->
   <script type="module" src="js/app.js"></script>
 </body>
