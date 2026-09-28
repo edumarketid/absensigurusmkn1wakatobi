@@ -9,7 +9,6 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 16px); 
 }
 
-/* TATA LETAK CETAK FISIK LAPORAN FULL KERTAS */
 @media print {
   body { 
     background: white !important; 
