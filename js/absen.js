@@ -1,183 +1,128 @@
 import { GAS_URL, state } from './config.js';
-import { calculateDistance } from './geofence.js';
+import { checkGeofence } from './geofence.js';
 
 export async function kirimAbsen() {
+  if (!state.currentUser || !state.currentUser.guru) {
+    alert("Sesi login berakhir. Silakan login ulang!");
+    return;
+  }
+
+  const guruAktif = state.currentUser.guru;
   const jenis = document.getElementById("absen-jenis").value;
   const status = document.getElementById("absen-status").value;
   const isManual = document.getElementById("absen-is-manual").checked;
   const jamManual = document.getElementById("absen-jam-manual").value;
   const ket = document.getElementById("absen-ket").value;
 
-  // Validasi input awal jika keterangan belum diisi
-  if ((status !== "Hadir" || isManual) && !ket) { 
-    alert("Keterangan wajib diisi!"); 
-    return; 
+  if ((status !== "Hadir" || isManual) && !ket) {
+    alert("Keterangan wajib diisi untuk status Non-Hadir atau Absen Manual!");
+    return;
   }
 
-  const btnKirim = document.getElementById("btn-kirim-absen");
-  
-  // Ubah tampilan tombol secara instan ke indikator "Terkirim" (Hijau)
-  if (btnKirim) {
-    btnKirim.disabled = true;
-    btnKirim.className = "w-full bg-emerald-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center space-x-2 transition-all duration-300";
-    btnKirim.innerHTML = `
-      <i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i>
-      <span>Terkirim</span>
-    `;
-    lucide.createIcons();
+  let jamFinal = new Date().toLocaleTimeString('id-ID', { hour12: false });
+  if (isManual) {
+    if (!jamManual) { alert("Masukkan jam presensi manual!"); return; }
+    jamFinal = jamManual;
   }
 
-  const now = new Date();
-  const tanggalStr = now.toISOString().split('T')[0];
-  const jamStr = isManual && jamManual ? jamManual : now.toTimeString().split(' ')[0].substring(0, 5);
-
-  const processAbsen = (coords) => {
-    const record = {
-      id_absen: "ABS-" + Date.now(),
-      id_guru: state.currentUser.guru.id_guru,
-      tanggal: tanggalStr, 
-      jam: jamStr, 
-      jenis_absen: jenis, 
-      status: status, 
-      keterangan: ket, 
-      koordinat: coords, 
-      is_manual: isManual
-    };
-
-    let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
-    pending.push(record);
-    localStorage.setItem("pending_absen", JSON.stringify(pending));
-
-    // Sinkronisasi senyap di latar belakang
-    if (navigator.onLine) {
-      syncOfflineData();
+  // Geofence Validation
+  let coordsText = "Bebas GPS";
+  if (state.globalConfig && state.globalConfig.geofence_active) {
+    const geo = await checkGeofence();
+    if (!geo.allowed && status === "Hadir") {
+      alert(`Gagal Presensi: Anda berada di luar radius sekolah (${geo.distance}m dari lokasi sekolah).`);
+      return;
     }
-    
-    // Perbarui riwayat presensi lokal
-    loadRiwayat();
+    coordsText = `${geo.userLat}, ${geo.userLng}`;
+  }
 
-    // Reset tombol kembali ke warna biru dalam 3 detik
-    setTimeout(() => {
-      if (btnKirim) {
-        btnKirim.disabled = false;
-        btnKirim.className = "w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center space-x-2 transition-all duration-300";
-        btnKirim.innerHTML = `
-          <i data-lucide="send" class="w-4 h-4"></i>
-          <span>Kirim Presensi</span>
-        `;
-        lucide.createIcons();
-      }
-    }, 3000);
+  const record = {
+    id_absen: "ABS-" + Date.now(),
+    id_guru: guruAktif.id_guru,
+    nama_guru: guruAktif.nama,
+    jenis_absen: jenis,
+    status: status,
+    jam: jamFinal,
+    keterangan: ket || "-",
+    tanggal: new Date().toISOString().split('T')[0],
+    koordinat: coordsText
   };
 
-  navigator.geolocation.getCurrentPosition((pos) => {
-    const userLat = pos.coords.latitude;
-    const userLng = pos.coords.longitude;
-    const coords = `${userLat},${userLng}`;
-
-    if (state.globalConfig && state.globalConfig.geofence_active && status === "Hadir") {
-      const distance = calculateDistance(userLat, userLng, state.globalConfig.lat_sekolah, state.globalConfig.lng_sekolah);
-      if (distance > state.globalConfig.radius_meter) {
-        alert(`Peringatan Geofence: Anda berada ${Math.round(distance)}m dari lokasi sekolah. Batas radius: ${state.globalConfig.radius_meter}m.`);
-        
-        // Kembalikan tombol ke kondisi semula jika terhalang Geofence
-        if (btnKirim) {
-          btnKirim.disabled = false;
-          btnKirim.className = "w-full bg-blue-600 text-white py-3 rounded-2xl font-bold text-xs shadow-md shadow-blue-600/20 flex items-center justify-center space-x-2";
-          btnKirim.innerHTML = `<i data-lucide="send" class="w-4 h-4"></i><span>Kirim Presensi</span>`;
-          lucide.createIcons();
-        }
-        return;
-      }
-    }
-    processAbsen(coords);
-  }, () => {
-    processAbsen("GPS Offline");
-  });
+  if (navigator.onLine) {
+    const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`).then(r => r.json());
+    alert(res.message);
+    loadRiwayat();
+  } else {
+    let offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
+    offlineData.push(record);
+    localStorage.setItem("offline_absen", JSON.stringify(offlineData));
+    alert("Presensi disimpan di lokal (offline). Akan otomatis dikirim saat online.");
+  }
 }
 
 export async function syncOfflineData() {
-  let pending = JSON.parse(localStorage.getItem("pending_absen") || "[]");
-  if (pending.length > 0 && navigator.onLine) {
-    try {
-      // Mengirimkan data tanpa memunculkan alert/notifikasi apa pun ke user
-      const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(pending))}`).then(r => r.json());
-      if (res.success) {
-        localStorage.removeItem("pending_absen");
-        loadRiwayat();
-      }
-    } catch(e) {
-      console.log("Sinkronisasi ditunda, server belum dapat dijangkau.");
+  const offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
+  if (offlineData.length === 0) return;
+
+  try {
+    const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(offlineData))}`).then(r => r.json());
+    if (res.success) {
+      localStorage.removeItem("offline_absen");
+      console.log("Sinkronisasi data offline berhasil.");
+      loadRiwayat();
     }
+  } catch (e) {
+    console.log("Gagal sinkron data offline.");
   }
 }
 
 export async function loadRiwayat() {
-  let offlineData = JSON.parse(localStorage.getItem("pending_absen") || "[]");
+  if (!state.currentUser || !state.currentUser.guru) return;
+  const container = document.getElementById("riwayat-list");
   
-  const renderRiwayatItems = (listData) => {
-    const container = document.getElementById("riwayat-list");
-    if (!listData || listData.length === 0) {
-      container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Belum ada riwayat presensi.</p>`;
-      return;
+  if (navigator.onLine) {
+    const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json());
+    if (res.success) {
+      renderRiwayatList(res.data);
     }
-
-    container.innerHTML = listData.map(r => `
-      <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-1.5 text-xs">
-        <span class="font-bold text-slate-800 border-b pb-1 flex justify-between items-center">
-          <span>${r.tanggal}</span>
-          ${r.hasPending ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-semibold">Pending Sync</span>' : ''}
-        </span>
-        <div class="grid grid-cols-2 gap-2 pt-0.5">
-          <div class="bg-slate-50 p-2 rounded-xl">
-            <span class="text-[10px] text-slate-500 font-semibold block">🌅 PAGI</span>
-            ${r.pagi ? `
-              <p class="font-bold text-slate-800">${r.pagi.status} (${r.pagi.jam})</p>
-              <p class="text-[10px] text-slate-500">${r.pagi.is_manual === 'YA' ? 'Manual' : 'Otomatis'}${r.pagi.ket ? '• ' + r.pagi.ket : ''}</p>
-            ` : `<span class="text-slate-400 italic text-[11px]">- Belum Absen -</span>`}
-          </div>
-          <div class="bg-slate-50 p-2 rounded-xl">
-            <span class="text-[10px] text-slate-500 font-semibold block">☀️ SIANG</span>
-            ${r.siang ? `
-              <p class="font-bold text-slate-800">${r.siang.status} (${r.siang.jam})</p>
-              <p class="text-[10px] text-slate-500">${r.siang.is_manual === 'YA' ? 'Manual' : 'Otomatis'}${r.siang.ket ? '• ' + r.siang.ket : ''}</p>
-            ` : `<span class="text-slate-400 italic text-[11px]">- Belum Absen -</span>`}
-          </div>
+  } else {
+    const offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
+    const myOffline = offlineData.filter(o => String(o.id_guru) === String(state.currentUser.guru.id_guru));
+    container.innerHTML = myOffline.map(o => `
+      <div class="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs space-y-1">
+        <div class="flex justify-between font-bold text-amber-900">
+          <span>${o.tanggal} (${o.jenis_absen})</span>
+          <span>Pending Sync</span>
         </div>
+        <p class="text-amber-700">Jam: ${o.jam} | Status: ${o.status}</p>
       </div>
-    `).join('');
-  };
+    `).join('') || `<p class="text-xs text-slate-400 italic">Belum ada riwayat offline.</p>`;
+  }
+}
 
-  if (!navigator.onLine) {
-    let mapOffline = {};
-    offlineData.forEach(r => {
-      if (String(r.id_guru) === String(state.currentUser.guru.id_guru)) {
-        if (!mapOffline[r.tanggal]) mapOffline[r.tanggal] = { tanggal: r.tanggal, pagi: null, siang: null, hasPending: true };
-        mapOffline[r.tanggal][r.jenis_absen.toLowerCase()] = { jam: r.jam, status: r.status, ket: r.keterangan, is_manual: r.is_manual ? 'YA' : 'TIDAK' };
-      }
-    });
-    renderRiwayatItems(Object.values(mapOffline));
+function renderRiwayatList(list) {
+  const container = document.getElementById("riwayat-list");
+  if (list.length === 0) {
+    container.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada riwayat presensi.</p>`;
     return;
   }
 
-  try {
-    const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json());
-    if (res.success) {
-      let serverData = res.data;
-      offlineData.forEach(off => {
-        if (String(off.id_guru) === String(state.currentUser.guru.id_guru)) {
-          let exist = serverData.find(s => s.tanggal === off.tanggal);
-          if (!exist) {
-            exist = { tanggal: off.tanggal, pagi: null, siang: null, hasPending: true };
-            serverData.unshift(exist);
-          }
-          exist[off.jenis_absen.toLowerCase()] = { jam: off.jam, status: off.status, ket: off.keterangan, is_manual: off.is_manual ? 'YA' : 'TIDAK' };
-          exist.hasPending = true;
-        }
-      });
-      renderRiwayatItems(serverData);
-    }
-  } catch(e) {
-    console.log("Gagal memuat riwayat online.");
-  }
+  container.innerHTML = list.map(r => `
+    <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm text-xs space-y-2">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-1.5">
+        <span class="font-bold text-slate-800">${r.tanggal}</span>
+        <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold text-[10px]">${r.status_akhir}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-[11px]">
+        <div class="bg-slate-50 p-2 rounded-xl">
+          <span class="text-slate-400 block text-[9px] font-bold">PAGI</span>
+          ${r.pagi ? `<span class="font-bold text-slate-700">${r.pagi.jam} (${r.pagi.status})</span>` : '<span class="text-slate-400">-</span>'}
+        </div>
+        <div class="bg-slate-50 p-2 rounded-xl">
+          <span class="text-slate-400 block text-[9px] font-bold">SIANG</span>
+          ${r.siang ? `<span class="font-bold text-slate-700">${r.siang.jam} (${r.siang.status})</span>` : '<span class="text-slate-400">-</span>'}
+        </div>
+      </div>
+    </div>
+  `).join('');
 }
