@@ -24,7 +24,8 @@ export function renderListGuru() {
     <div class="p-3 bg-white border border-slate-100 rounded-2xl shadow-sm flex justify-between items-center text-xs">
       <div>
         <h4 class="font-bold text-slate-800">${g.nama}</h4>
-        <p class="text-slate-500 text-[11px]">NIP: ${g.nip || '-'} | HP: ${g.hp} | PIN: ${g.pin}</p>
+        <p class="text-slate-500 text-[11px]">NIP: ${g.nip || '-'} | Mapel: ${g.mapel || '-'}</p>
+        <span class="inline-block mt-0.5 bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-medium">${g.jabatan || 'Guru'} (${g.golongan || '-'})</span>
       </div>
       <div class="flex space-x-1">
         <button class="btn-edit-guru text-blue-600 p-2" data-guru='${JSON.stringify(g)}'><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -67,7 +68,6 @@ export function renderListAbsenAdmin() {
   });
 }
 
-// KELOLA JADWAL (ADMIN)
 export function renderListJadwalAdmin() {
   const container = document.getElementById("list-jadwal-admin");
   const list = state.adminData.jadwal || [];
@@ -122,7 +122,6 @@ export async function hapusJadwal(id) {
   loadAdminData();
 }
 
-// KELOLA PINTASAN LINK (ADMIN)
 export function renderListPintasanAdmin() {
   const container = document.getElementById("list-pintasan-admin");
   fetch(`${GAS_URL}?action=getPintasanLink`).then(r => r.json()).then(res => {
@@ -170,9 +169,12 @@ export async function simpanDataGuru() {
     id_guru: document.getElementById("guru-edit-id").value,
     nama: document.getElementById("guru-edit-nama").value,
     nip: document.getElementById("guru-edit-nip").value,
+    pangkat: document.getElementById("guru-edit-pangkat").value,
+    golongan: document.getElementById("guru-edit-golongan").value,
+    jabatan: document.getElementById("guru-edit-jabatan").value,
+    mapel: document.getElementById("guru-edit-mapel").value,
     hp: document.getElementById("guru-edit-hp").value,
     pin: document.getElementById("guru-edit-pin").value,
-    jabatan: document.getElementById("guru-edit-jabatan").value,
     aktif: true
   };
   const res = await fetch(`${GAS_URL}?action=saveGuru&data=${encodeURIComponent(JSON.stringify(guru))}`).then(r => r.json());
