@@ -3,16 +3,22 @@ import { checkGeofence } from './geofence.js';
 
 export async function kirimAbsen() {
   if (!state.currentUser || !state.currentUser.guru) {
-    alert("Sesi login berakhir atau tidak valid. Silakan logout dan login kembali!");
+    alert("Sesi login berakhir. Silakan login ulang!");
     return;
   }
 
   const guruAktif = state.currentUser.guru;
-  const jenis = document.getElementById("absen-jenis").value;
-  const status = document.getElementById("absen-status").value;
-  const isManual = document.getElementById("absen-is-manual").checked;
-  const jamManual = document.getElementById("absen-jam-manual").value;
-  const ket = document.getElementById("absen-ket").value;
+  const jenisEl = document.getElementById("absen-jenis");
+  const statusEl = document.getElementById("absen-status");
+  const isManualEl = document.getElementById("absen-is-manual");
+  const jamManualEl = document.getElementById("absen-jam-manual");
+  const ketEl = document.getElementById("absen-ket");
+
+  const jenis = jenisEl ? jenisEl.value : "Pagi";
+  const status = statusEl ? statusEl.value : "Hadir";
+  const isManual = isManualEl ? isManualEl.checked : false;
+  const jamManual = jamManualEl ? jamManualEl.value : "";
+  const ket = ketEl ? ketEl.value : "";
 
   if ((status !== "Hadir" || isManual) && !ket) {
     alert("Keterangan wajib diisi untuk status Non-Hadir atau Absen Manual!");
@@ -25,15 +31,18 @@ export async function kirimAbsen() {
     jamFinal = jamManual;
   }
 
-  // Geofence Validation
   let coordsText = "Bebas GPS";
   if (state.globalConfig && state.globalConfig.geofence_active) {
-    const geo = await checkGeofence();
-    if (!geo.allowed && status === "Hadir") {
-      alert(`Gagal Presensi: Anda berada di luar radius sekolah (${geo.distance}m dari lokasi sekolah).`);
-      return;
+    try {
+      const geo = await checkGeofence();
+      if (!geo.allowed && status === "Hadir") {
+        alert(`Gagal Presensi: Anda berada di luar radius sekolah (${geo.distance}m dari sekolah).`);
+        return;
+      }
+      coordsText = `${geo.userLat}, ${geo.userLng}`;
+    } catch (e) {
+      console.log("Geofence error:", e);
     }
-    coordsText = `${geo.userLat}, ${geo.userLng}`;
   }
 
   const record = {
@@ -48,20 +57,25 @@ export async function kirimAbsen() {
     koordinat: coordsText
   };
 
+  const btnKirim = document.getElementById("btn-kirim-absen");
+  if (btnKirim) btnKirim.disabled = true;
+
   if (navigator.onLine) {
     try {
       const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`).then(r => r.json());
       alert(res.message || "Presensi berhasil dikirim!");
       loadRiwayat();
     } catch (e) {
-      alert("Terjadi kesalahan jaringan/koneksi saat mengiriim presensi.");
+      alert("Gagal terhubung ke server Apps Script. Periksa koneksi atau URL Web App.");
     }
   } else {
     let offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
     offlineData.push(record);
     localStorage.setItem("offline_absen", JSON.stringify(offlineData));
-    alert("Presensi disimpan di lokal (offline). Akan otomatis dikirim saat online.");
+    alert("Presensi disimpan secara offline. Akan dikirim saat terhubung internet.");
   }
+
+  if (btnKirim) btnKirim.disabled = false;
 }
 
 export async function syncOfflineData() {
@@ -72,11 +86,10 @@ export async function syncOfflineData() {
     const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify(offlineData))}`).then(r => r.json());
     if (res.success) {
       localStorage.removeItem("offline_absen");
-      console.log("Sinkronisasi data offline berhasil.");
       loadRiwayat();
     }
   } catch (e) {
-    console.log("Gagal sinkron data offline.");
+    console.log("Gagal sinkron offline.");
   }
 }
 
@@ -84,15 +97,15 @@ export async function loadRiwayat() {
   if (!state.currentUser || !state.currentUser.guru) return;
   const container = document.getElementById("riwayat-list");
   if (!container) return;
-  
+
   if (navigator.onLine) {
     try {
       const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json());
       if (res.success && res.data) {
         renderRiwayatList(res.data);
       }
-    } catch(e) {
-      console.log("Gagal memuat riwayat.");
+    } catch (e) {
+      container.innerHTML = `<p class="text-xs text-rose-500 italic">Gagal memuat riwayat dari server.</p>`;
     }
   } else {
     const offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
