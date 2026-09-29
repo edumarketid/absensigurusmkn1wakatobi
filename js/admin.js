@@ -25,7 +25,7 @@ export function renderListGuru() {
       <div>
         <h4 class="font-bold text-slate-800">${g.nama}</h4>
         <p class="text-slate-500 text-[11px]">NIP: ${g.nip || '-'} | Mapel: ${g.mapel || '-'}</p>
-        <span class="inline-block mt-0.5 bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-medium">${g.jabatan || 'Guru'} (${g.golongan || '-'})</span>
+        <span class="inline-block mt-0.5 bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-medium">${g.jabatan || 'Guru'} (${g.pangkat_golongan || '-'})</span>
       </div>
       <div class="flex space-x-1">
         <button class="btn-edit-guru text-blue-600 p-2" data-guru='${JSON.stringify(g)}'><i data-lucide="edit" class="w-4 h-4"></i></button>
@@ -169,8 +169,7 @@ export async function simpanDataGuru() {
     id_guru: document.getElementById("guru-edit-id").value,
     nama: document.getElementById("guru-edit-nama").value,
     nip: document.getElementById("guru-edit-nip").value,
-    pangkat: document.getElementById("guru-edit-pangkat").value,
-    golongan: document.getElementById("guru-edit-golongan").value,
+    pangkat_golongan: document.getElementById("guru-edit-pangkat-gol").value,
     jabatan: document.getElementById("guru-edit-jabatan").value,
     mapel: document.getElementById("guru-edit-mapel").value,
     hp: document.getElementById("guru-edit-hp").value,
