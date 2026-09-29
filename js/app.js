@@ -87,22 +87,13 @@ function showGuruDashboard() {
   document.getElementById("guru-jabatan").innerText = state.currentUser.guru.jabatan || 'Guru';
   document.getElementById("guru-avatar").innerText = state.currentUser.guru.nama.charAt(0).toUpperCase();
 
-  const cardBio = document.getElementById("card-register-fingerprint");
-  if (cardBio) {
-    if (!localStorage.getItem("biometric_credential")) {
-      cardBio.classList.remove("hidden");
-    } else {
-      cardBio.classList.add("hidden");
-    }
-  }
-
   if (state.globalConfig && state.globalConfig.geofence_active) {
     document.getElementById("geofence-status-text").innerText = `Zona Lokasi Aktif (Radius Batas: ${state.globalConfig.radius_meter} Meter)`;
   } else {
     document.getElementById("geofence-status-text").innerText = `Zona Lokasi Non-Aktif (Absen Bebas)`;
   }
 
-  // Render Data Beranda & Jadwal Guru
+  loadProfilGuruAkun();
   loadPintasanGuru();
   loadJadwalGuru();
   loadRiwayat();
@@ -116,6 +107,49 @@ function showAdminDashboard() {
   document.getElementById("guru-bottom-nav").classList.add("hidden");
   loadAdminData();
   lucide.createIcons();
+}
+
+// RENDER PROFIL DIBAGIAN TAB AKUN
+function loadProfilGuruAkun() {
+  const container = document.getElementById("container-profil-guru");
+  const g = state.currentUser.guru;
+  
+  container.innerHTML = `
+    <div class="grid grid-cols-2 gap-2 text-[11px]">
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">NAMA LENGKAP</span><span class="font-bold text-slate-800">${g.nama || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">NIP / NUPTK</span><span class="font-bold text-slate-800">${g.nip || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">PANGKAT</span><span class="font-bold text-slate-800">${g.pangkat || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">GOLONGAN</span><span class="font-bold text-slate-800">${g.golongan || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">JABATAN</span><span class="font-bold text-slate-800">${g.jabatan || 'Guru'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">MATA PELAJARAN</span><span class="font-bold text-slate-800">${g.mapel || '-'}</span></div>
+    </div>
+  `;
+
+  // Status Switcher Saklar Biometrik
+  const toggleSwitch = document.getElementById("toggle-biometric-switch");
+  const labelStatus = document.getElementById("label-status-fingerprint");
+  const hasBio = !!localStorage.getItem("biometric_credential");
+
+  if (toggleSwitch && labelStatus) {
+    toggleSwitch.checked = hasBio;
+    labelStatus.innerText = hasBio ? "Aktif & Siap Digunakan" : "Non-Aktif";
+
+    toggleSwitch.onchange = async (e) => {
+      if (e.target.checked) {
+        const ok = await registerBiometric(state.currentUser.guru);
+        if (ok) {
+          labelStatus.innerText = "Aktif & Siap Digunakan";
+        } else {
+          e.target.checked = false;
+          labelStatus.innerText = "Non-Aktif";
+        }
+      } else {
+        localStorage.removeItem("biometric_credential");
+        labelStatus.innerText = "Non-Aktif";
+        alert("Login Sidik Jari dinonaktifkan.");
+      }
+    };
+  }
 }
 
 // RENDER PINTASAN DOKUMEN & LINK (GURU)
@@ -136,7 +170,7 @@ function loadPintasanGuru() {
   });
 }
 
-// RENDER JADWAL GURU (BERANDA & TAB JADWAL)
+// RENDER JADWAL GURU
 function loadJadwalGuru() {
   const hariArr = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
   const hariIni = hariArr[new Date().getDay()];
@@ -147,7 +181,6 @@ function loadJadwalGuru() {
     if (res.success && res.data) {
       const listJadwal = res.data;
       
-      // 1. Ringkasan Hari Ini di Beranda
       const ringkasan = document.getElementById("ringkasan-jadwal-hari-ini");
       const jadwalToday = listJadwal.filter(j => j.hari === hariIni);
       if (jadwalToday.length === 0) {
@@ -164,7 +197,6 @@ function loadJadwalGuru() {
         `).join('');
       }
 
-      // 2. Jadwal Lengkap Mingguan di Tab Jadwal
       const containerLengkap = document.getElementById("container-jadwal-lengkap-guru");
       const hariKerja = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
       
@@ -199,12 +231,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-login").onclick = doLogin;
   document.getElementById("btn-logout-guru").onclick = logout;
   document.getElementById("btn-logout-admin").onclick = logout;
+  document.getElementById("btn-akun-logout").onclick = logout;
 
   // Navigasi Bottom Guru
   document.getElementById("btn-guru-nav-beranda").onclick = () => switchGuruTab('beranda');
   document.getElementById("btn-guru-nav-presensi").onclick = () => switchGuruTab('presensi');
   document.getElementById("btn-guru-nav-jadwal").onclick = () => switchGuruTab('jadwal');
   document.getElementById("btn-guru-nav-riwayat").onclick = () => switchGuruTab('riwayat');
+  document.getElementById("btn-guru-nav-akun").onclick = () => switchGuruTab('akun');
 
   // Install PWA Button Click
   const btnInstall = document.getElementById("btn-install-pwa");
@@ -234,20 +268,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  // Enable Biometric Click
-  const btnEnableBio = document.getElementById("btn-enable-biometric");
-  if (btnEnableBio) {
-    btnEnableBio.onclick = async () => {
-      if (state.currentUser && state.currentUser.guru) {
-        const ok = await registerBiometric(state.currentUser.guru);
-        if (ok) {
-          document.getElementById("card-register-fingerprint").classList.add("hidden");
-        }
-      }
-    };
-  }
-
   document.getElementById("btn-open-pin").onclick = openModalGantiPin;
+  document.getElementById("btn-akun-ganti-pin").onclick = openModalGantiPin;
   document.getElementById("btn-close-pin").onclick = closeModalGantiPin;
   document.getElementById("btn-save-pin").onclick = async () => {
     const pinBaru = document.getElementById("pin-baru").value;
