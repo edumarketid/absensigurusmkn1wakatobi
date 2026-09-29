@@ -9,9 +9,9 @@ export function renderCachedConfig(cfg) {
   }
 }
 
-// NAVIGASI BOTTOM TAB GURU
+// NAVIGASI BOTTOM TAB GURU (5 MENU UTAMA)
 export function switchGuruTab(tab) {
-  ["beranda", "presensi", "jadwal", "riwayat"].forEach(t => {
+  ["beranda", "presensi", "jadwal", "riwayat", "akun"].forEach(t => {
     document.getElementById(`tab-guru-${t}`).classList.add("hidden");
     const btn = document.getElementById(`btn-guru-nav-${t}`);
     if (btn) btn.classList.remove("text-blue-600", "font-semibold");
@@ -52,17 +52,23 @@ export function openModalGuru(guru = null) {
     document.getElementById("guru-edit-id").value = guru.id_guru;
     document.getElementById("guru-edit-nama").value = guru.nama;
     document.getElementById("guru-edit-nip").value = guru.nip;
+    document.getElementById("guru-edit-pangkat").value = guru.pangkat || "";
+    document.getElementById("guru-edit-golongan").value = guru.golongan || "";
+    document.getElementById("guru-edit-jabatan").value = guru.jabatan || "";
+    document.getElementById("guru-edit-mapel").value = guru.mapel || "";
     document.getElementById("guru-edit-hp").value = guru.hp;
     document.getElementById("guru-edit-pin").value = guru.pin;
-    document.getElementById("guru-edit-jabatan").value = guru.jabatan;
   } else {
     document.getElementById("modal-guru-title").innerText = "Tambah Guru Baru";
     document.getElementById("guru-edit-id").value = "";
     document.getElementById("guru-edit-nama").value = "";
     document.getElementById("guru-edit-nip").value = "";
+    document.getElementById("guru-edit-pangkat").value = "";
+    document.getElementById("guru-edit-golongan").value = "";
+    document.getElementById("guru-edit-jabatan").value = "";
+    document.getElementById("guru-edit-mapel").value = "";
     document.getElementById("guru-edit-hp").value = "";
     document.getElementById("guru-edit-pin").value = "12345";
-    document.getElementById("guru-edit-jabatan").value = "";
   }
 }
 
