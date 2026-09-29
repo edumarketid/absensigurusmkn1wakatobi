@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Presensi Guru Digital v1.6.0</title>
+  <title>Presensi Guru Digital v1.7.0</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -48,7 +48,7 @@
           </div>
           <div>
             <h1 id="login-sekolah-nama" class="text-xl font-bold text-slate-900 tracking-tight">Presensi Guru Digital</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Versi 1.6.0 • Multi Navigasi & Fast Engine</p>
+            <p class="text-xs text-slate-500 mt-0.5">Versi 1.7.0 • Account Profile & Security Engine</p>
           </div>
         </div>
 
@@ -107,18 +107,6 @@
 
           <!-- TAB GURU 1: BERANDA -->
           <div id="tab-guru-beranda" class="space-y-4">
-            
-            <!-- CARD AKTIVASI SIDIK JARI -->
-            <div id="card-register-fingerprint" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-2xl flex items-center justify-between text-xs text-emerald-800">
-              <div class="flex items-center space-x-2">
-                <i data-lucide="fingerprint" class="w-5 h-5 text-emerald-600 flex-shrink-0"></i>
-                <span class="font-medium">Aktifkan Login Sidik Jari</span>
-              </div>
-              <button id="btn-enable-biometric" class="bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] hover:bg-emerald-700">
-                Aktifkan
-              </button>
-            </div>
-
             <!-- STATUS LOKASI INFO CARD -->
             <div id="geofence-status-card" class="bg-blue-50 border border-blue-200 p-3 rounded-2xl flex items-center space-x-2 text-xs text-blue-800">
               <i data-lucide="map-pin" class="w-4 h-4 text-blue-600 flex-shrink-0"></i>
@@ -145,7 +133,6 @@
               </div>
               <div id="ringkasan-jadwal-hari-ini" class="space-y-2 text-xs"></div>
             </div>
-
           </div>
 
           <!-- TAB GURU 2: PRESENSI -->
@@ -219,6 +206,73 @@
             <div id="riwayat-list" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1"></div>
           </div>
 
+          <!-- TAB GURU 5: AKUN -->
+          <div id="tab-guru-akun" class="hidden space-y-4 text-xs pb-6">
+            
+            <!-- INFORMASI PRIBADI GURU -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="user-check" class="w-4.5 h-4.5 text-blue-600"></i>
+                <span>Informasi Pribadi Guru</span>
+              </h3>
+              <div id="container-profil-guru" class="space-y-2"></div>
+            </div>
+
+            <!-- PENGAMANAN -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="shield-check" class="w-4.5 h-4.5 text-emerald-600"></i>
+                <span>Pengamanan Akun</span>
+              </h3>
+              
+              <div class="space-y-2.5">
+                <button id="btn-akun-ganti-pin" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl flex justify-between items-center text-slate-700 font-semibold hover:bg-slate-100 active:scale-95 transition-all">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="key" class="w-4 h-4 text-slate-500"></i>
+                    <span>Ubah PIN Keamanan</span>
+                  </div>
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+                </button>
+
+                <div class="bg-slate-50 border border-slate-200 p-3 rounded-2xl flex justify-between items-center">
+                  <div class="flex items-center space-x-2">
+                    <i data-lucide="fingerprint" class="w-4 h-4 text-emerald-600"></i>
+                    <div>
+                      <span class="font-semibold text-slate-800 block">Login Sidik Jari</span>
+                      <span id="label-status-fingerprint" class="text-[10px] text-slate-500">Non-Aktif</span>
+                    </div>
+                  </div>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="toggle-biometric-switch" class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- KONTAK PENGEMBANG -->
+            <div class="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-800 border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="code-2" class="w-4.5 h-4.5 text-indigo-600"></i>
+                <span>Kontak Pengembang</span>
+              </h3>
+              <a href="https://wa.me/6285298875399?text=Halo%20Pengembang%20Aplikasi%20Presensi%20Guru" target="_blank" rel="noopener noreferrer" class="w-full bg-emerald-600 text-white p-3 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 active:scale-95 transition-all">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>Hubungi via WhatsApp (085298875399)</span>
+              </a>
+            </div>
+
+            <!-- KELUAR & INFORMASI VERSI -->
+            <div class="pt-2 text-center space-y-3">
+              <button id="btn-akun-logout" class="w-full bg-rose-50 text-rose-600 border border-rose-200 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 active:scale-95 transition-all">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span>Keluar Akun</span>
+              </button>
+              <p class="text-[11px] text-slate-400 font-medium">Presensi Guru Digital • Versi 1.7.0</p>
+            </div>
+
+          </div>
+
         </div>
       </div>
 
@@ -268,7 +322,7 @@
             <div id="list-absen-admin" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
           </div>
 
-          <!-- TAB GURU -->
+          <!-- TAB GURU (ADMIN) -->
           <div id="tab-guru" class="hidden space-y-3 no-print">
             <div class="flex justify-between items-center">
               <h3 class="font-bold text-sm text-slate-800">Data Guru Terdaftar</h3>
@@ -317,7 +371,7 @@
             </div>
           </div>
 
-          <!-- TAB PENGATURAN UMUM, ZONA & PINTASAN LINK -->
+          <!-- TAB PENGATURAN UMUM -->
           <div id="tab-pengaturan" class="hidden space-y-4 no-print">
             
             <!-- Kelola Pintasan Link -->
@@ -416,12 +470,13 @@
 
     </main>
 
-    <!-- BOTTOM NAV GURU -->
-    <nav id="guru-bottom-nav" class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 backdrop-blur-md border-t border-slate-200 px-3 py-2 flex justify-around items-center z-40 pb-safe text-[10px] no-print">
+    <!-- BOTTOM NAV GURU (5 MENU UTAMA) -->
+    <nav id="guru-bottom-nav" class="hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 backdrop-blur-md border-t border-slate-200 px-2 py-2 flex justify-around items-center z-40 pb-safe text-[10px] no-print">
       <button id="btn-guru-nav-beranda" class="flex flex-col items-center space-y-1 text-blue-600 font-semibold"><i data-lucide="home" class="w-5 h-5"></i><span>Beranda</span></button>
       <button id="btn-guru-nav-presensi" class="flex flex-col items-center space-y-1 text-slate-400"><i data-lucide="clock" class="w-5 h-5"></i><span>Presensi</span></button>
       <button id="btn-guru-nav-jadwal" class="flex flex-col items-center space-y-1 text-slate-400"><i data-lucide="calendar" class="w-5 h-5"></i><span>Jadwal</span></button>
       <button id="btn-guru-nav-riwayat" class="flex flex-col items-center space-y-1 text-slate-400"><i data-lucide="history" class="w-5 h-5"></i><span>Riwayat</span></button>
+      <button id="btn-guru-nav-akun" class="flex flex-col items-center space-y-1 text-slate-400"><i data-lucide="user" class="w-5 h-5"></i><span>Akun</span></button>
     </nav>
 
     <!-- BOTTOM NAV ADMIN -->
@@ -448,16 +503,19 @@
     </div>
   </div>
 
-  <!-- MODAL GURU -->
+  <!-- MODAL FORM GURU (ADMIN) -->
   <div id="modal-guru" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-5 w-full max-w-xs space-y-3 text-xs">
+    <div class="bg-white rounded-3xl p-5 w-full max-w-xs space-y-3 text-xs max-h-[90vh] overflow-y-auto">
       <h3 id="modal-guru-title" class="font-bold text-sm text-slate-800">Form Data Guru</h3>
       <input type="hidden" id="guru-edit-id">
       <div><label class="font-semibold text-slate-600">Nama Lengkap</label><input type="text" id="guru-edit-nama" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
-      <div><label class="font-semibold text-slate-600">NIP</label><input type="text" id="guru-edit-nip" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
+      <div><label class="font-semibold text-slate-600">NIP / NUPTK</label><input type="text" id="guru-edit-nip" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
+      <div><label class="font-semibold text-slate-600">Pangkat</label><input type="text" id="guru-edit-pangkat" placeholder="Misal: Pembina Utama Muda" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
+      <div><label class="font-semibold text-slate-600">Golongan</label><input type="text" id="guru-edit-golongan" placeholder="Misal: IV/c" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
+      <div><label class="font-semibold text-slate-600">Jabatan</label><input type="text" id="guru-edit-jabatan" placeholder="Misal: Guru Ahli Madya" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
+      <div><label class="font-semibold text-slate-600">Mata Pelajaran</label><input type="text" id="guru-edit-mapel" placeholder="Misal: Informatika / TKJ" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
       <div><label class="font-semibold text-slate-600">Nomor HP</label><input type="text" id="guru-edit-hp" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
       <div><label class="font-semibold text-slate-600">PIN (Default: 12345)</label><input type="text" id="guru-edit-pin" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
-      <div><label class="font-semibold text-slate-600">Jabatan</label><input type="text" id="guru-edit-jabatan" class="w-full bg-slate-50 border p-2 rounded-xl"></div>
       <div class="flex space-x-2 pt-2">
         <button id="btn-close-guru" class="w-1/2 bg-slate-200 text-slate-700 py-2 rounded-xl font-semibold">Batal</button>
         <button id="btn-save-guru" class="w-1/2 bg-blue-600 text-white py-2 rounded-xl font-semibold">Simpan</button>
