@@ -3,7 +3,7 @@ import { checkGeofence } from './geofence.js';
 
 export async function kirimAbsen() {
   if (!state.currentUser || !state.currentUser.guru) {
-    alert("Sesi login berakhir. Silakan login ulang!");
+    alert("Sesi login berakhir atau tidak valid. Silakan logout dan login kembali!");
     return;
   }
 
@@ -49,9 +49,13 @@ export async function kirimAbsen() {
   };
 
   if (navigator.onLine) {
-    const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`).then(r => r.json());
-    alert(res.message);
-    loadRiwayat();
+    try {
+      const res = await fetch(`${GAS_URL}?action=syncAbsen&data=${encodeURIComponent(JSON.stringify([record]))}`).then(r => r.json());
+      alert(res.message || "Presensi berhasil dikirim!");
+      loadRiwayat();
+    } catch (e) {
+      alert("Terjadi kesalahan jaringan/koneksi saat mengiriim presensi.");
+    }
   } else {
     let offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
     offlineData.push(record);
@@ -79,11 +83,16 @@ export async function syncOfflineData() {
 export async function loadRiwayat() {
   if (!state.currentUser || !state.currentUser.guru) return;
   const container = document.getElementById("riwayat-list");
+  if (!container) return;
   
   if (navigator.onLine) {
-    const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json());
-    if (res.success) {
-      renderRiwayatList(res.data);
+    try {
+      const res = await fetch(`${GAS_URL}?action=getRiwayatGuru&data=${encodeURIComponent(JSON.stringify({id_guru: state.currentUser.guru.id_guru}))}`).then(r => r.json());
+      if (res.success && res.data) {
+        renderRiwayatList(res.data);
+      }
+    } catch(e) {
+      console.log("Gagal memuat riwayat.");
     }
   } else {
     const offlineData = JSON.parse(localStorage.getItem("offline_absen") || "[]");
@@ -102,7 +111,9 @@ export async function loadRiwayat() {
 
 function renderRiwayatList(list) {
   const container = document.getElementById("riwayat-list");
-  if (list.length === 0) {
+  if (!container) return;
+
+  if (!list || list.length === 0) {
     container.innerHTML = `<p class="text-xs text-slate-400 italic">Belum ada riwayat presensi.</p>`;
     return;
   }
