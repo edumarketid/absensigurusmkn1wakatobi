@@ -118,8 +118,8 @@ function loadProfilGuruAkun() {
     <div class="grid grid-cols-2 gap-2 text-[11px]">
       <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">NAMA LENGKAP</span><span class="font-bold text-slate-800">${g.nama || '-'}</span></div>
       <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">NIP / NUPTK</span><span class="font-bold text-slate-800">${g.nip || '-'}</span></div>
-      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">PANGKAT</span><span class="font-bold text-slate-800">${g.pangkat || '-'}</span></div>
-      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">GOLONGAN</span><span class="font-bold text-slate-800">${g.golongan || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">STATUS KEPEGAWAIAN</span><span class="font-bold text-blue-600">${g.status_kepegawaian || '-'}</span></div>
+      <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">PANGKAT / GOLONGAN</span><span class="font-bold text-slate-800">${g.pangkat_golongan || '-'}</span></div>
       <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">JABATAN</span><span class="font-bold text-slate-800">${g.jabatan || 'Guru'}</span></div>
       <div class="bg-slate-50 p-2.5 rounded-2xl border border-slate-100"><span class="text-slate-400 font-semibold block text-[10px]">MATA PELAJARAN</span><span class="font-bold text-slate-800">${g.mapel || '-'}</span></div>
     </div>
